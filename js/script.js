@@ -120,7 +120,7 @@ function init(fps = 60) {
         FPSH.log();
         try {
             debug_text.innerHTML = `
-            fps: ${FPSH.getFps().toFixed(2)}<br>
+            FPS: ${FPSH.getFps().toFixed(2)}<br>
             x: ${test.x.toFixed(2)}<br>
             y: ${test.y.toFixed(2)}<br>
             dX: ${test.direction.x.toFixed(2)}<br>

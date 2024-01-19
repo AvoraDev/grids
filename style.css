@@ -10,6 +10,9 @@ body {
     background-color: rgba(75, 75, 75, 0.6);
     color: white;
 }
+#fps-input {
+    width: 4rem;
+}
 #disp {
     display: block;
     background-color: white;
