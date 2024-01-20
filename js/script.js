@@ -1,5 +1,10 @@
+// !!! IMPORTANT NOTE !!!
+// you need to decide if you want to keep adding functions for resizing
+// its getting annoying
+
 // module imports
 import { Hoot } from "./Hoot.js";
+import { Griddy } from "./Griddy.js";
 import { StdEntity } from "./StdEntity.js";
 import { NPC } from "./NPC.js";
 import { FPSH } from "./FPSH.js";
@@ -13,12 +18,29 @@ const disp = new Hoot(
     "rgb(0, 0, 0)"
 );
 
+// grid setup
+Griddy.canvas = disp;
+Griddy.ctx = disp.ctx;
+Griddy.border.color = "rgb(255, 255, 255)";
+Griddy.border.margin = 25;
+
 // FPSH setup
 FPSH.input = document.querySelector("#fps-input");
 FPSH.confirm = document.querySelector("#fps-confirm");
 
-// test entity setup
+// StdEntity setup
 StdEntity.ctx = disp.ctx;
+let spaceMargin = 25;
+function spaceResize(x, y, width, height, margin = 0) {
+    StdEntity.space.x = x + margin;
+    StdEntity.space.y = y + margin;
+    StdEntity.space.width = width - margin;
+    StdEntity.space.height = height - margin;
+}
+spaceResize(0, 0, disp.width, disp.height, spaceMargin);
+window.addEventListener("resize", () => {spaceResize(0, 0, disp.width, disp.height, spaceMargin);});
+
+// test entity setup
 const test = new StdEntity(
 	disp.width / 2,
     disp.height / 2,
@@ -72,7 +94,7 @@ test.addKeybind("shoot", "Space", {
         }
     },
     disabled: () => {
-        test._inputObj.shoot.flag.keyup = false;
+        test._inputConfig.shoot.flag.keyup = false;
     }
 });
 
@@ -88,31 +110,16 @@ function init(fps = 60) {
     anim = setInterval(() => {
         // clean screen
         disp.clear();
-            
+        
+        // update grid
+        Griddy.update();
+
         // update stuff
         test.update();
         
         // npc jazz
         for (let i = 0; i < test.NPCs.length; i++) {
             test.NPCs[i].update();
-        }
-
-        // collision detection
-        if (test.x < 0 || test.x > disp.width - test.size.width) {
-            test.direction.x = -test.direction.x;
-            if (test.x < 0) {
-                test.x = 0; // + test.size.width;
-            } else {
-                test.x = disp.width - test.size.width;
-            }
-        }
-        if (test.y < 0 || test.y > disp.height - test.size.height) {
-            test.direction.y = -test.direction.y;
-            if (test.y < 0) {
-                test.y = 0; // + test.size.height;
-            } else {
-                test.y = disp.height - test.size.height;
-            }
         }
         
         // debugging
@@ -132,22 +139,23 @@ function init(fps = 60) {
             <br>
             Flags:<br>
             up:<br>
-            - down: <span style="color:${test._inputObj.up.flag.keydown ? tru : fal}">${test._inputObj.up.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputObj.up.flag.keyup ? tru : fal}">${test._inputObj.up.flag.keyup}</span><br>
+            - down: <span style="color:${test._inputConfig.up.flag.keydown ? tru : fal}">${test._inputConfig.up.flag.keydown}</span><br>
+            - up: <span style="color:${test._inputConfig.up.flag.keyup ? tru : fal}">${test._inputConfig.up.flag.keyup}</span><br>
             down:<br>
-            - down: <span style="color:${test._inputObj.down.flag.keydown ? tru : fal}">${test._inputObj.down.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputObj.down.flag.keyup ? tru : fal}">${test._inputObj.down.flag.keyup}</span><br>
+            - down: <span style="color:${test._inputConfig.down.flag.keydown ? tru : fal}">${test._inputConfig.down.flag.keydown}</span><br>
+            - up: <span style="color:${test._inputConfig.down.flag.keyup ? tru : fal}">${test._inputConfig.down.flag.keyup}</span><br>
             left:<br>
-            - down: <span style="color:${test._inputObj.left.flag.keydown ? tru : fal}">${test._inputObj.left.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputObj.left.flag.keyup ? tru : fal}">${test._inputObj.left.flag.keyup}</span><br>
+            - down: <span style="color:${test._inputConfig.left.flag.keydown ? tru : fal}">${test._inputConfig.left.flag.keydown}</span><br>
+            - up: <span style="color:${test._inputConfig.left.flag.keyup ? tru : fal}">${test._inputConfig.left.flag.keyup}</span><br>
             right:<br>
-            - down: <span style="color:${test._inputObj.right.flag.keydown ? tru : fal}">${test._inputObj.right.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputObj.right.flag.keyup ? tru : fal}">${test._inputObj.right.flag.keyup}</span><br>
+            - down: <span style="color:${test._inputConfig.right.flag.keydown ? tru : fal}">${test._inputConfig.right.flag.keydown}</span><br>
+            - up: <span style="color:${test._inputConfig.right.flag.keyup ? tru : fal}">${test._inputConfig.right.flag.keyup}</span><br>
             shoot:<br>
-            - down: <span style="color:${test._inputObj.shoot.flag.keydown ? tru : fal}">${test._inputObj.shoot.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputObj.shoot.flag.keyup ? tru : fal}">${test._inputObj.shoot.flag.keyup}</span><br>
+            - down: <span style="color:${test._inputConfig.shoot.flag.keydown ? tru : fal}">${test._inputConfig.shoot.flag.keydown}</span><br>
+            - up: <span style="color:${test._inputConfig.shoot.flag.keyup ? tru : fal}">${test._inputConfig.shoot.flag.keyup}</span><br>
             <br>
-            NPCs: ${test.NPCs.length}
+            NPCs: ${test.NPCs.length}<br>
+            Grid: ${Griddy.withinCell(test.x, test.y)}
             `;
         }
         catch(err) {
