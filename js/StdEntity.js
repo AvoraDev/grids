@@ -1,5 +1,6 @@
 export class StdEntity {
     // canvas context
+    static space = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
 	constructor(x, y, appearance, movementInfo) {
   	    // unique properties
@@ -57,11 +58,30 @@ export class StdEntity {
                 }
             }
         };
-        
+        this.collisionConfig = {
+            rebound: false,
+            onCollision: {
+                x: () => {
+                    if (this.x < StdEntity.space.x) {
+                        this.x = StdEntity.space.x; // + this.size.width;
+                    } else {
+                        this.x = StdEntity.space.width - this.size.width;
+                    }
+                },
+                y: () => {
+                    if (this.y < StdEntity.space.y) {
+                        this.y = StdEntity.space.y; // + this.size.height;
+                    } else {
+                        this.y = StdEntity.space.height - this.size.height;
+                    }
+                }
+            }
+        }
+
         // internal properties
         // todo - find better name
         this.debug = false;
-        this._inputObj = {
+        this._inputConfig = {
             up: {
                 action: {
                     enabled: () => {
@@ -71,7 +91,7 @@ export class StdEntity {
                     disabled: () => {
                         this.direction.turn('y', 0, -1);
                         if (this.direction.y === 0) {
-                            this._inputObj.up.flag.keyup = false;
+                            this._inputConfig.up.flag.keyup = false;
                         }
                     }
                 },
@@ -90,7 +110,7 @@ export class StdEntity {
                     disabled: () => {
                         this.direction.turn('y', 0);
                         if (this.direction.y === 0) {
-                            this._inputObj.down.flag.keyup = false;
+                            this._inputConfig.down.flag.keyup = false;
                         }
                     }
                 },
@@ -109,7 +129,7 @@ export class StdEntity {
                     disabled: () => {
                         this.direction.turn('x', 0);
                         if (this.direction.x === 0) {
-                            this._inputObj.left.flag.keyup = false;
+                            this._inputConfig.left.flag.keyup = false;
                         }
                     }
                 },
@@ -128,7 +148,7 @@ export class StdEntity {
                     disabled: () => {
                         this.direction.turn('x', 0, -1);
                         if (this.direction.x === 0) {
-                            this._inputObj.right.flag.keyup = false;
+                            this._inputConfig.right.flag.keyup = false;
                         }
                     }
                 },
@@ -143,16 +163,6 @@ export class StdEntity {
         // extra setup
         // leaving this for the user to set up
         // this._initEventListeners();
-    }
-    _move() {
-        // normalize vector by dividing component by magnitude
-        // todo - prevent snapping when going opposite direction
-        if (this.direction.x === 0 && this.direction.y === 0) {
-            return undefined;
-        } else {
-            this.x += (this.direction.x / this.direction.magnitude()) * this.speed.current;
-            this.y -= (this.direction.y / this.direction.magnitude()) * this.speed.current;
-        }
     }
     _drawRectangle() {
         StdEntity.ctx.fillStyle = this.color;
@@ -243,24 +253,56 @@ export class StdEntity {
             this._drawDebugArrow();
         }
     }
+    _move() {
+        // normalize vector by dividing component by magnitude
+        // todo - prevent snapping when going opposite direction
+        if (this.direction.x === 0 && this.direction.y === 0) {
+            return undefined;
+        } else {
+            this.x += (this.direction.x / this.direction.magnitude()) * this.speed.current;
+            this.y -= (this.direction.y / this.direction.magnitude()) * this.speed.current;
+        }
+    }
+    _collisionDetection() {
+        // todo - work on collision for other objects
+        // todo - find a better name for space
+        if (this.x < StdEntity.space.x || this.x > StdEntity.space.width - this.size.width) {
+            // cause entity to rebound if it is enabled
+            if (this.collisionConfig.rebound === true) {
+                this.direction.x = -this.direction.x;
+            }
+
+            // run onCollision
+            this.collisionConfig.onCollision.x();
+        }
+        if (this.y < StdEntity.space.y || this.y > StdEntity.space.height - this.size.height) {
+            // cause entity to rebound if it is enabled
+            if (this.collisionConfig.rebound === true) {
+                this.direction.y = -this.direction.y;
+            }
+
+            // run onCollision
+            this.collisionConfig.onCollision.y();
+        }
+    }
     _inputHandler(e, eventType) {
-        Object.keys(this._inputObj).forEach(key => {
-            if (this._inputObj[key].keybind === e.code) {
+        Object.keys(this._inputConfig).forEach(key => {
+            if (this._inputConfig[key].keybind === e.code) {
                 // change flag based on key state
-                this._inputObj[key].flag.keydown = (eventType === "keydown") ? true : false;
-                this._inputObj[key].flag.keyup = (eventType === "keyup") ? true : false;
+                this._inputConfig[key].flag.keydown = (eventType === "keydown") ? true : false;
+                this._inputConfig[key].flag.keyup = (eventType === "keyup") ? true : false;
             }
         });
     }
     _inputActionHandler() {
         let anyFlagsTrue = false
         // run through actions of every keybind with an enabled flag
-        Object.keys(this._inputObj).forEach(key => {
-            if (this._inputObj[key].flag.keydown === true) {
-                this._inputObj[key].action.enabled();
+        Object.keys(this._inputConfig).forEach(key => {
+            if (this._inputConfig[key].flag.keydown === true) {
+                this._inputConfig[key].action.enabled();
                 anyFlagsTrue = true;
-            } else if (this._inputObj[key].flag.keyup === true) {
-                this._inputObj[key].action.disabled();
+            } else if (this._inputConfig[key].flag.keyup === true) {
+                this._inputConfig[key].action.disabled();
             }
         });
         if (anyFlagsTrue === false) {
@@ -268,7 +310,7 @@ export class StdEntity {
         }
     }
     addKeybind(name, keybind, action) {
-        this._inputObj[name] = {
+        this._inputConfig[name] = {
             action: action,
             keybind: keybind,
             flag: {
@@ -289,6 +331,7 @@ export class StdEntity {
         // todo - see if drawing before or after is the better option
         this._draw();
         this._move();
+        this._collisionDetection();
         this._inputActionHandler();
     }
 }
