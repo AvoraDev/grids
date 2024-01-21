@@ -17,7 +17,7 @@ body {
     top: 0.32rem;
     left: 0.32rem;
 }
-#helper-div div {
+#helper-div > div {
     padding: 0.16rem 0.7rem;
     background-color: rgba(45, 45, 45, 0.9);
 }
@@ -26,8 +26,9 @@ body {
 }
 #debug-menu {
     display: none;
+    width: 10rem;
 }
-#fps-input {
+#debug-menu input {
     width: 4rem;
 }
 #disp {
