@@ -7,10 +7,23 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="debug-container">
-        <p id="debug-text">000</p>
-        <input type="number" name="fps-input" id="fps-input" min="1">
-        <button type="button" id="fps-confirm">Set FPS</button>
+    <div id="helper-div">
+        <div id="keybind-menu">
+            <p>KeyBinds</p>
+            <p class="horizontal-line"></p>
+            <p>
+                <b>W/A/S/D</b> - Move<br>
+                <b>J</b> - Toggle keybind menu<br>
+                <b>K</b> - Toggle Debug Menu<br>
+                <b>L</b> - Toggle Grid ID display<br>
+                <b>M</b> - Toggle Movement/Speed Pointer
+            </p>
+        </div>
+        <div id="debug-menu">
+            <p id="debug-text">000</p>
+            <input type="number" name="fps-input" id="fps-input" min="1">
+            <button type="button" id="fps-confirm">Set FPS</button>
+        </div>
     </div>
     <canvas id="disp"></canvas>
     <script type="module" src="js/script.js"></script>

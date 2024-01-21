@@ -8,6 +8,7 @@ export class NPC extends StdEntity {
         // this is the only real difference so i'm not sure if it should have it's own file
         this._draw();
         this._move();
+        this._collisionDetection();
         // this._inputActionHandler();
     }
 }
