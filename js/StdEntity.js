@@ -250,7 +250,7 @@ export class StdEntity {
         // );
         StdEntity.ctx.stroke();
     }
-    _draw() {
+    draw() {
         // todo - allow custom draw functions to be loaded
         switch (this.shape) {
             case "rectangle":
@@ -334,8 +334,7 @@ export class StdEntity {
         this.y = y;
     }
     update() {
-        // todo - see if drawing before or after is the better option
-        this._draw();
+        // this.draw();
         this._move();
         this._collisionDetection();
         this._inputActionHandler();

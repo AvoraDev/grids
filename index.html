@@ -9,10 +9,11 @@
 <body>
     <div id="helper-div">
         <div id="keybind-menu">
-            <p>KeyBinds</p>
+            <p><b>Keybinds</b></p>
             <p class="horizontal-line"></p>
             <p>
                 <b>W/A/S/D</b> - Move<br>
+                <b>Space</b> - Spawn entity (wip)<br>
                 <b>J</b> - Toggle keybind menu<br>
                 <b>K</b> - Toggle Debug Menu<br>
                 <b>L</b> - Toggle Grid ID display<br>
@@ -21,8 +22,14 @@
         </div>
         <div id="debug-menu">
             <p id="debug-text">000</p>
-            <input type="number" name="fps-input" id="fps-input" min="1">
-            <button type="button" id="fps-confirm">Set FPS</button>
+            <div>
+                <input type="number" name="fps-input" id="fps-input" min="1">
+                <button type="button" id="fps-confirm">Set FPS</button>
+            </div>
+            <div>
+                <input type="number" name="tps-input" id="tps-input" min="1">
+                <button type="button" id="tps-confirm">Set TPS</button>
+            </div>
         </div>
     </div>
     <canvas id="disp"></canvas>

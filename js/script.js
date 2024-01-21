@@ -7,7 +7,7 @@ import { Hoot } from "./Hoot.js";
 import { Griddy } from "./Griddy.js";
 import { StdEntity } from "./StdEntity.js";
 import { NPC } from "./NPC.js";
-import { FPSH } from "./FPSH.js";
+import { LPSH } from "./LPSH.js";
 
 // HTML elements
 const debug_text = document.querySelector("#debug-text");
@@ -19,10 +19,14 @@ const disp = new Hoot(document.querySelector("#disp"), "rgb(0, 0, 0)");
 Griddy.canvas = disp;
 Griddy.ctx = disp.ctx;
 Griddy.border.margin = 25;
+Griddy.updateCells();
+window.addEventListener("resize", () => {
+    Griddy.updateCells();
+});
 
-// FPSH setup
-FPSH.input = document.querySelector("#fps-input");
-FPSH.confirm = document.querySelector("#fps-confirm");
+// FPSH and TPSH setup
+const FPSH = new LPSH("#fps-input", "#fps-confirm");
+const TPSH = new LPSH("#tps-input", "#tps-confirm");
 
 // StdEntity setup
 StdEntity.ctx = disp.ctx;
@@ -48,7 +52,7 @@ const test = new StdEntity(
         speed: {
             min: 0,
             max: 10,
-            acceleration: 30/60 // note: acceleration is changed per frame
+            acceleration: 1
         }
     }
 );
@@ -90,14 +94,15 @@ test.addKeybind("shoot", "Space", {
 });
 
 // debugging mess
-let cellDebug = false;
-let txtDebug = false;
-function debug(txt = false, cell = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") {
-    if (txt === true) {
+let cellsDebugFlag = false;
+let txtDebugFlag = false;
+function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") {
+    if (flag === true) {
         // wish this didn't have to be hand written
         try {
             debug_text.innerHTML = `
-            FPS: ${FPSH.getFps().toFixed(2)}<br>
+            FPS: ${FPSH.getLPS().toFixed(2)}<br>
+            TPS: ${TPSH.getLPS().toFixed(2)}<br>
             x: ${test.x.toFixed(2)}<br>
             y: ${test.y.toFixed(2)}<br>
             dX: ${test.direction.x.toFixed(2)}<br>
@@ -134,9 +139,10 @@ function debug(txt = false, cell = false, tru = "rgb(0, 255, 0)", fal = "rgb(255
     } else {
         debug_text.innerHTML = "";
     }
-
+}
+function debugCells(flag = false) {
     // highlight cell
-    if (cell === true) {
+    if (flag === true) {
         let gridId = Griddy.withinCell(test.x, test.y);
         Griddy.debug = true;
         try {
@@ -158,22 +164,43 @@ function debug(txt = false, cell = false, tru = "rgb(0, 255, 0)", fal = "rgb(255
 }
 
 let anim;
-function init(fps = 60) {
+let calc; // todo - name
+function initDraw(fps) {
     // clear previous interval
     clearInterval(anim);
 
     // start new one with given fps
-    // todo - speed changes with fps, fix it with another interval or some other solution
+    // note: order matters here
     anim = setInterval(() => {
         // clean screen
         disp.clear();
         
-        // debugging
-        debug(txtDebug, cellDebug, "rgb(0, 255, 255)", "rgb(255, 150, 100)")
+        // debug
+        debugCells(cellsDebugFlag);
 
-        // update grid
-        Griddy.update();
+        // draw grid
+        Griddy.draw();
 
+        // draw test entity
+        test.draw();
+
+        // npc jazz
+        for (let i = 0; i < test.NPCs.length; i++) {
+            test.NPCs[i].draw();
+        }
+
+        FPSH.log();
+    }, 1000 / fps);
+
+    // log init
+    console.log(`Init with ${fps} FPS set`);
+}
+function initCalc(tps) { // ticks per second
+    // clear previous interval
+    clearInterval(calc);
+
+    // start new one with given tps
+    calc = setInterval(() => {
         // update stuff
         test.update();
         
@@ -182,25 +209,35 @@ function init(fps = 60) {
             test.NPCs[i].update();
         }
 
-        // log fps sample
-        FPSH.log();
-    }, 1000 / fps);
+        // debugging
+        debugTxt(txtDebugFlag, "rgb(0, 255, 255)", "rgb(255, 150, 100)")
+        TPSH.log();
+    }, 1000 / tps);
 
     // log init
-    console.log(`Init with ${fps} FPS set`);
+    console.log(`Init with ${tps} TPS set`);
+}
+function init(fps = 60, tps = 60) {
+    // begin jazz
+    initDraw(fps);
+    initCalc(tps);
+
+    // log init
+    // console.log(`Init with ${fps} FPS and ${tps} TPS set`);
 }
 
 // begin (lol)
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 
-                        init(60);
+                        init(60, 60);
 
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 
 // misc
-FPSH.confirm.onclick = () => {init(FPSH.input.value);}
+FPSH.confirm.onclick = () => {initDraw(FPSH.input.value);};
+TPSH.confirm.onclick = () => {initCalc(TPSH.input.value);};
 
 function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
     let e = document.querySelector(elem);
@@ -216,11 +253,11 @@ window.addEventListener("keypress", e => {
     switch (e.code) {
         case "KeyK":
             toggleHTMLDisplay("#debug-menu", "none", "block");
-            txtDebug = !txtDebug;
+            txtDebugFlag = !txtDebugFlag;
             break;
         
         case "KeyL":
-            cellDebug = !cellDebug;
+            cellsDebugFlag = !cellsDebugFlag;
             break;
         
         case "KeyJ":
