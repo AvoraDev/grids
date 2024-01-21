@@ -1,28 +1,33 @@
 export class StdEntity {
     // canvas context
-    static space = {x: 0, y: 0, width: 0, height: 0};
+    static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
-	constructor(x, y, appearance, movementInfo) {
+	constructor(x, y, appearance, mvInfo) {
   	    // unique properties
         this.x = x;
         this.y = y
         this.color = appearance.color;
-        this.size = (typeof(appearance.size) === "object") ? appearance.size : {
-            width: appearance.size,
-            height: appearance.size
-        };
+        this.size = (typeof(appearance.size) === "object") ?
+            appearance.size : {
+                width: appearance.size,
+                height: appearance.size
+            };
         this.shape = (appearance.shape != undefined) ? appearance.shape : "rectangle";
-        this.direction = (typeof(movementInfo.direction) === "object") ? movementInfo.direction : {
-            x: Math.cos(movementInfo.direction * (Math.PI / 180)),
-            y: Math.sin(movementInfo.direction * (Math.PI / 180))
-        };
+        this.direction = (typeof(mvInfo.direction) === "object") ?
+            mvInfo.direction : {
+                x: Math.cos(mvInfo.direction * (Math.PI / 180)),
+                y: Math.sin(mvInfo.direction * (Math.PI / 180))
+            };
         this.speed = {
-            min: movementInfo.speed.min,
-            max: movementInfo.speed.max,
-            current: (movementInfo.speed.current != undefined) ? movementInfo.speed.current : movementInfo.speed.min,
+            min: mvInfo.speed.min,
+            max: mvInfo.speed.max,
+            current: (mvInfo.speed.current != undefined) ?
+                mvInfo.speed.current : mvInfo.speed.min,
             turning: 0.05,
-            acceleration: (movementInfo.speed.acceleration != undefined) ? movementInfo.speed.acceleration : movementInfo.speed.max,
-            decelearation: (movementInfo.speed.decelearation != undefined) ? movementInfo.speed.decelearation : movementInfo.speed.acceleration,
+            acceleration: (mvInfo.speed.acceleration != undefined) ?
+                mvInfo.speed.acceleration : mvInfo.speed.max,
+            decelearation: (mvInfo.speed.decelearation != undefined) ?
+                mvInfo.speed.decelearation : mvInfo.speed.acceleration,
             decelerate: function() {
                 if (this.current - this.decelearation < this.min) {
                     this.current = this.min;
@@ -62,17 +67,29 @@ export class StdEntity {
             rebound: false,
             onCollision: {
                 x: () => {
-                    if (this.x < StdEntity.space.x) {
-                        this.x = StdEntity.space.x; // + this.size.width;
+                    // move entity back within drawSpace
+                    if (this.x < StdEntity.drawSpace.x) {
+                        this.x = StdEntity.drawSpace.x; // + this.size.width;
                     } else {
-                        this.x = StdEntity.space.width - this.size.width;
+                        this.x = StdEntity.drawSpace.width - this.size.width;
+                    }
+
+                    // cause entity to rebound if it is enabled
+                    if (this.collisionConfig.rebound === true) {
+                        this.direction.x = -this.direction.x;
                     }
                 },
                 y: () => {
-                    if (this.y < StdEntity.space.y) {
-                        this.y = StdEntity.space.y; // + this.size.height;
+                    // move entity back within drawSpace
+                    if (this.y < StdEntity.drawSpace.y) {
+                        this.y = StdEntity.drawSpace.y; // + this.size.height;
                     } else {
-                        this.y = StdEntity.space.height - this.size.height;
+                        this.y = StdEntity.drawSpace.height - this.size.height;
+                    }
+                    
+                    // cause entity to rebound if it is enabled
+                    if (this.collisionConfig.rebound === true) {
+                        this.direction.y = -this.direction.y;
                     }
                 }
             }
@@ -265,22 +282,11 @@ export class StdEntity {
     }
     _collisionDetection() {
         // todo - work on collision for other objects
-        // todo - find a better name for space
-        if (this.x < StdEntity.space.x || this.x > StdEntity.space.width - this.size.width) {
-            // cause entity to rebound if it is enabled
-            if (this.collisionConfig.rebound === true) {
-                this.direction.x = -this.direction.x;
-            }
-
+        if (this.x < StdEntity.drawSpace.x || this.x > StdEntity.drawSpace.width - this.size.width) {
             // run onCollision
             this.collisionConfig.onCollision.x();
         }
-        if (this.y < StdEntity.space.y || this.y > StdEntity.space.height - this.size.height) {
-            // cause entity to rebound if it is enabled
-            if (this.collisionConfig.rebound === true) {
-                this.direction.y = -this.direction.y;
-            }
-
+        if (this.y < StdEntity.drawSpace.y || this.y > StdEntity.drawSpace.height - this.size.height) {
             // run onCollision
             this.collisionConfig.onCollision.y();
         }
@@ -333,5 +339,11 @@ export class StdEntity {
         this._move();
         this._collisionDetection();
         this._inputActionHandler();
+    }
+    static resizeDrawSpace(x, y, width, height, margin = 0) {
+        this.drawSpace.x = x + margin;
+        this.drawSpace.y = y + margin;
+        this.drawSpace.width = width - margin;
+        this.drawSpace.height = height - margin;
     }
 }
