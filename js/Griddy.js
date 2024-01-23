@@ -10,6 +10,10 @@ export const Griddy = {
     },
     debug: false,
     cells: [],
+    /**
+     * Find position and size of all cells.
+     * @returns {void}
+     */
     updateCells() {
         // get width and height of each cell
         let width = (this.canvas.width - (this.border.margin * 2)) / this.columns;
@@ -28,6 +32,10 @@ export const Griddy = {
             }
         }
     },
+    /**
+     * Draw all cells to canvas.
+     * @returns {void}
+     */
     draw() {
         // keep track of old line width to revert back to it later
         let oldLineWidth = this.ctx.lineWidth;
@@ -66,6 +74,12 @@ export const Griddy = {
     },
     // todo - name
     // todo - make this search better
+    /**
+     * Check to see if given coordinates is within any cell. Returns -1 if nothing is found.
+     * @param {number} x
+     * @param {number} y
+     * @returns {number}
+     */
     withinCell(x, y) {
         let xHit = false;
         let yHit = false;
@@ -92,6 +106,6 @@ export const Griddy = {
         }
 
         // if nothing is found
-        return "Not found";
+        return -1;
     }
 };

@@ -2,6 +2,31 @@ export class StdEntity {
     // canvas context
     static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
+    /**
+     * Create an instance of StdEntity.
+     * 
+     * appereance properties:
+     * - color
+     * - size (if one value is given for size, width and height will be set the same)
+     *     - width
+     *     - height
+     * 
+     * mvInfo properties:
+     * - direction (A number value in degrees can be given to find each component automatically)
+     *     - x
+     *     - y
+     * - speed
+     *     - min
+     *     - max
+     *     - current (default is min)
+     *     - acceleration (default is max)
+     *     - deceleration (default is acceleration)
+     * @param {number} x
+     * @param {number} y
+     * @param {object} appearance
+     * @param {object} mvInfo
+     * @returns {onject}
+     */
 	constructor(x, y, appearance, mvInfo) {
   	    // unique properties
         this.x = x;
@@ -67,11 +92,12 @@ export class StdEntity {
             rebound: false,
             onCollision: {
                 x: () => {
+                    let halfWidth = (this.size.width / 2);
                     // move entity back within drawSpace
-                    if (this.x < StdEntity.drawSpace.x) {
-                        this.x = StdEntity.drawSpace.x; // + this.size.width;
+                    if (this.x - halfWidth < StdEntity.drawSpace.x) {
+                        this.x = StdEntity.drawSpace.x + halfWidth; // + this.size.width;
                     } else {
-                        this.x = StdEntity.drawSpace.width - this.size.width;
+                        this.x = StdEntity.drawSpace.width - halfWidth;
                     }
 
                     // cause entity to rebound if it is enabled
@@ -80,11 +106,12 @@ export class StdEntity {
                     }
                 },
                 y: () => {
+                    let halfHeight = (this.size.height / 2);
                     // move entity back within drawSpace
-                    if (this.y < StdEntity.drawSpace.y) {
-                        this.y = StdEntity.drawSpace.y; // + this.size.height;
+                    if (this.y - halfHeight < StdEntity.drawSpace.y) {
+                        this.y = StdEntity.drawSpace.y + halfHeight; // + this.size.height;
                     } else {
-                        this.y = StdEntity.drawSpace.height - this.size.height;
+                        this.y = StdEntity.drawSpace.height - halfHeight;
                     }
                     
                     // cause entity to rebound if it is enabled
@@ -181,21 +208,65 @@ export class StdEntity {
         // leaving this for the user to set up
         // this._initEventListeners();
     }
+    /**
+     * Rotate a point around the origin (0, 0) using radians.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} angleRad
+     * @returns {number}
+     */
+    _rotatePoint(x, y, angleRad) {
+        /* Math is weird
+        x -> x'
+        y -> y'
+
+        x' = (x cos(d)) + (y sin(d))
+        y' = (x sin(d)) + (-y cos(d))
+        */
+        let cos = Math.cos(angleRad);
+        let sin = Math.sin(angleRad);
+        return [
+            (x * cos) + (y * sin),
+            (x * sin) + (-y * cos),
+        ];
+    }
     _drawRectangle() {
         StdEntity.ctx.fillStyle = this.color;
-        StdEntity.ctx.fillRect(this.x, this.y, this.size.width, this.size.height);
+        StdEntity.ctx.fillRect(
+            this.x - (this.size.width / 2),
+            this.y - (this.size.height / 2),
+            this.size.width,
+            this.size.height
+        );
     }
     _drawCircle() {
-        // an offset is added to make the circle draw as if it was a square
-        // where it draws starting at the top right rather than the center
-        let offset = this.size.width / 2;
         StdEntity.ctx.beginPath();
         
-        // width is used for radius for convenience
-        StdEntity.ctx.arc(this.x + offset, this.y + offset, this.size.width / 2, 0, Math.PI * 2);
+        // width is used for radius arbitrarilly (spelling?)
+        StdEntity.ctx.arc(this.x, this.y, this.size.width / 2, 0, Math.PI * 2);
         
         // draw
         StdEntity.ctx.fillStyle = this.color;
+        StdEntity.ctx.fill();
+    }
+    _drawTriangle() {
+        // triangle points
+        let angle = -Math.atan2(this.direction.y, this.direction.x);
+        const p = [ // height being divided is the offset
+            this._rotatePoint(this.size.height / 2, 0, angle),
+            this._rotatePoint(-this.size.height / 2, this.size.width / 2, angle),
+            this._rotatePoint(-this.size.height / 2, -(this.size.width / 2), angle)
+        ];
+
+        // draw points
+        StdEntity.ctx.beginPath();
+        StdEntity.ctx.moveTo(p[0][0] + this.x, p[0][1] + this.y);
+        StdEntity.ctx.lineTo(p[1][0] + this.x, p[1][1] + this.y);
+        StdEntity.ctx.lineTo(p[2][0] + this.x, p[2][1] + this.y);
+        StdEntity.ctx.closePath();
+
+        // draw
+        StdEntity.ctx.fillStyle = this.color; // this.color;
         StdEntity.ctx.fill();
     }
     _drawError() {
@@ -221,35 +292,39 @@ export class StdEntity {
     }
     _drawDebugArrow() {
         // lot of calculations to make everything dynamic
-        let multiplier = this.size.height * 0.25;
-        let cenX = this.x + (this.size.width / 2);
-        let cenY = this.y + (this.size.height / 2);
+        let extension = this.size.height * 0.25;
         let newX = (this.direction.x / this.direction.magnitude()) * this.speed.current;
         let newY = (this.direction.y / this.direction.magnitude()) * this.speed.current;
         StdEntity.ctx.beginPath();
-        StdEntity.ctx.strokeStyle = "rgb(255, 255, 255)";
         
         // arrow shaft
-        StdEntity.ctx.moveTo(cenX, cenY);
+        StdEntity.ctx.moveTo(this.x, this.y);
         StdEntity.ctx.lineTo(
-            cenX + (newX * multiplier),
-            cenY - (newY * multiplier)
+            this.x + (newX * extension),
+            this.y - (newY * extension)
         );
+        StdEntity.ctx.strokeStyle = "rgb(255, 255, 255)";
         StdEntity.ctx.stroke();
         
-        // arrow head
-        // todo - finish
-        // StdEntity.ctx.beginPath();
-        // StdEntity.ctx.fillStyle = "rgb(255, 255, 0)";
-        // StdEntity.ctx.moveTo(
-        //     cenX + (newX * multiplier),
-        //     cenY - (newY * multiplier),
-        // );
-        // StdEntity.ctx.lineTo(
-            
-        // );
-        StdEntity.ctx.stroke();
+        // arrow tip (taken from this._drawArrow())
+        let angle = -Math.atan2(this.direction.y, this.direction.x);
+        const p = [ // height being divided is the offset
+            this._rotatePoint(this.size.height / 4, 0, angle),
+            this._rotatePoint(-this.size.height / 4, this.size.width / 4, angle),
+            this._rotatePoint(-this.size.height / 4, -(this.size.width / 4), angle)
+        ];
+        StdEntity.ctx.beginPath();
+        StdEntity.ctx.moveTo(p[0][0] + (this.x + (newX * extension)), p[0][1] + (this.y - (newY * extension)));
+        StdEntity.ctx.lineTo(p[1][0] + (this.x + (newX * extension)), p[1][1] + (this.y - (newY * extension)));
+        StdEntity.ctx.lineTo(p[2][0] + (this.x + (newX * extension)), p[2][1] + (this.y - (newY * extension)));
+        StdEntity.ctx.closePath();
+        StdEntity.ctx.fillStyle = "rgb(255, 255, 255)";
+        StdEntity.ctx.fill();
     }
+    /**
+     * Draw entity to canvas using it's shape.
+     * @returns {void}
+     */
     draw() {
         // todo - allow custom draw functions to be loaded
         switch (this.shape) {
@@ -258,6 +333,9 @@ export class StdEntity {
             break;
         case "circle":
             this._drawCircle();
+            break;
+        case "triangle":
+            this._drawTriangle();
             break;
         default:
             this._drawError();
@@ -282,11 +360,17 @@ export class StdEntity {
     }
     _collisionDetection() {
         // todo - work on collision for other objects
-        if (this.x < StdEntity.drawSpace.x || this.x > StdEntity.drawSpace.width - this.size.width) {
+        if (
+                this.x - (this.size.width / 2) < StdEntity.drawSpace.x ||
+                this.x + (this.size.width / 2)> StdEntity.drawSpace.width
+            ) {
             // run onCollision
             this.collisionConfig.onCollision.x();
         }
-        if (this.y < StdEntity.drawSpace.y || this.y > StdEntity.drawSpace.height - this.size.height) {
+        if (
+                this.y - (this.size.height / 2) < StdEntity.drawSpace.y ||
+                this.y + (this.size.height / 2) > StdEntity.drawSpace.height
+            ) {
             // run onCollision
             this.collisionConfig.onCollision.y();
         }
@@ -315,6 +399,13 @@ export class StdEntity {
             this.speed.decelerate();
         }
     }
+    /**
+     * Add a keybind to an instance of StdEntity.
+     * @param {string} name
+     * @param {string} keybind - using Event.code
+     * @param {function} action
+     * @returns {void}
+     */
     addKeybind(name, keybind, action) {
         this._inputConfig[name] = {
             action: action,
@@ -325,20 +416,43 @@ export class StdEntity {
             }
         }
     }
+    /**
+     * Add event listeners to handle key inputs.
+     * @returns {void}
+     */
     initEventListeners() {
         window.addEventListener("keydown", (e) => {this._inputHandler(e, "keydown")});
         window.addEventListener("keyup", (e) => {this._inputHandler(e, "keyup")});
     }
+    /**
+     * "Teleport" entity to specified coordinates.
+     * @param {number} x
+     * @param {number} y
+     * @returns {void}
+     */
     tp(x, y) {
         this.x = x;
         this.y = y;
     }
+    /**
+     * Update position, check collision, and handle any user inputs.
+     * @returns {void}
+     */
     update() {
         // this.draw();
         this._move();
         this._collisionDetection();
         this._inputActionHandler();
     }
+    /**
+     * Resize the space where an entity is allowed to be. Affects all instances.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {number} margin=0
+     * @returns {void}
+     */
     static resizeDrawSpace(x, y, width, height, margin = 0) {
         this.drawSpace.x = x + margin;
         this.drawSpace.y = y + margin;

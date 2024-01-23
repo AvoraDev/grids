@@ -70,7 +70,7 @@ test.addKeybind("shoot", "Space", {
                 test.y,
                 {
                     color: "rgb(0, 255, 255)",
-                    shape: "circle",
+                    shape: "triangle",
                     size: test.size.width * 0.75
                 },
                 {
@@ -236,8 +236,8 @@ function init(fps = 60, tps = 60) {
 // ------------------------------------------------------------
 
 // misc
-FPSH.confirm.onclick = () => {initDraw(FPSH.input.value);};
-TPSH.confirm.onclick = () => {initCalc(TPSH.input.value);};
+FPSH.confirm.onclick = () => {FPSH.clearSamples(); initDraw(FPSH.input.value);};
+TPSH.confirm.onclick = () => {TPSH.clearSamples(); initCalc(TPSH.input.value);};
 
 function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
     let e = document.querySelector(elem);
