@@ -6,7 +6,7 @@ export class LPSH {
      * @param {number} sampleSize
      * @returns {object}
      */
-    constructor(input, confirm, sampleSize) {
+    constructor(input, confirm, sampleSize = 25) {
         this.input = document.querySelector(input);
         this.confirm = document.querySelector(confirm);
         this.logStart = new Date();

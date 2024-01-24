@@ -128,7 +128,8 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             - down: <span style="color:${test._inputConfig.shoot.flag.keydown ? tru : fal}">${test._inputConfig.shoot.flag.keydown}</span><br>
             - up: <span style="color:${test._inputConfig.shoot.flag.keyup ? tru : fal}">${test._inputConfig.shoot.flag.keyup}</span><br>
             <br>
-            NPCs: ${test.NPCs.length}
+            NPCs: ${test.NPCs.length}<br>
+            Cells: ${Griddy.cells.length}
             `;
         }
         catch(err) {
@@ -238,6 +239,14 @@ function init(fps = 60, tps = 60) {
 // misc
 FPSH.confirm.onclick = () => {FPSH.clearSamples(); initDraw(FPSH.input.value);};
 TPSH.confirm.onclick = () => {TPSH.clearSamples(); initCalc(TPSH.input.value);};
+document.querySelector("#grid-rows-confirm").onclick = () => {
+    Griddy.rows = document.querySelector("#grid-rows-input").value;
+    Griddy.updateCells();
+};
+document.querySelector("#grid-columns-confirm").onclick = () => {
+    Griddy.columns = document.querySelector("#grid-columns-input").value;
+    Griddy.updateCells()
+};
 
 function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
     let e = document.querySelector(elem);
@@ -267,6 +276,12 @@ window.addEventListener("keypress", e => {
         
         case "KeyM":
             test.debug = !test.debug;
+            break;
+        
+        case "KeyN":
+            toggleHTMLDisplay("#variable-menu", "none", "block");
+            break;
+        
         default:
             break;
     }

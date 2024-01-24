@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="./style.css">
     <title>grids</title>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="helper-div">
@@ -17,18 +18,37 @@
                 <b>J</b> - Toggle keybind menu<br>
                 <b>K</b> - Toggle Debug Menu<br>
                 <b>L</b> - Toggle Grid ID display<br>
-                <b>M</b> - Toggle Movement/Speed Pointer
+                <b>M</b> - Toggle Movement/Speed Pointer<br>
+                <b>N</b> - Toggle Variable Inputs
             </p>
         </div>
         <div id="debug-menu">
             <p id="debug-text">000</p>
+        </div>
+        <div id="variable-menu">
             <div>
-                <input type="number" name="fps-input" id="fps-input" min="1">
-                <button type="button" id="fps-confirm">Set FPS</button>
+                <p>FPS</p>
+                <input type="number" name="fps-input" id="fps-input"
+                    min="1" value="60">
+                <button type="button" id="fps-confirm">Set</button>
             </div>
             <div>
-                <input type="number" name="tps-input" id="tps-input" min="1">
-                <button type="button" id="tps-confirm">Set TPS</button>
+                <p>TPS</p>
+                <input type="number" name="tps-input" id="tps-input"
+                    min="1" value="60">
+                <button type="button" id="tps-confirm">Set</button>
+            </div>
+            <div>
+                <p>Grid Rows</p>
+                <input type="number" name="grid-rows-input" id="grid-rows-input"
+                    min="1" value="8">
+                <button type="button" id="grid-rows-confirm">Set</button>
+            </div>
+            <div>
+                <p>Grid Columns</p>
+                <input type="number" name="grid-columns-input" id="grid-columns-input"
+                    min="1" value="8">
+                <button type="button" id="grid-columns-confirm">Set</button>
             </div>
         </div>
     </div>

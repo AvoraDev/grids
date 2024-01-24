@@ -15,6 +15,9 @@ export const Griddy = {
      * @returns {void}
      */
     updateCells() {
+        // clear all cells
+        this.cells = [];
+
         // get width and height of each cell
         let width = (this.canvas.width - (this.border.margin * 2)) / this.columns;
         let height = (this.canvas.height - (this.border.margin * 2)) / this.rows;
@@ -28,7 +31,7 @@ export const Griddy = {
                 let y = 0 + (height * i) + (this.border.margin);
                 
                 // set cells arr
-                this.cells[(i * this.columns) + j] = [x, y, width, height];
+                this.cells.push([x, y, width, height]);
             }
         }
     },
@@ -48,7 +51,7 @@ export const Griddy = {
         if (this.debug === true) {
             this.ctx.fillStyle = this.border.color;
             this.ctx.textAlign = "center";
-            this.ctx.font = "20px Ariel"
+            this.ctx.font = `${this.cells[0][2] / 7}px Ariel`
         }
 
         // draw all cells

@@ -20,15 +20,17 @@ body {
 #helper-div > div {
     padding: 0.16rem 0.7rem;
     background-color: rgba(45, 45, 45, 0.9);
-}
-#keybind-menu {
     margin-bottom: 0.5rem;
 }
 #debug-menu {
     display: none;
     width: 10rem;
 }
-#debug-menu input {
+#variable-menu {
+    display: none;
+    width: 10rem;
+}
+#variable-menu input {
     width: 4rem;
 }
 #credits-div {
