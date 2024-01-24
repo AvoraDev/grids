@@ -75,40 +75,24 @@ export const Griddy = {
         // revert line width
         this.ctx.lineWidth = oldLineWidth;
     },
-    // todo - name
-    // todo - make this search better
     /**
-     * Check to see if given coordinates is within any cell. Returns -1 if nothing is found.
+     * Check to see if given coordinates is within any cell. Returns -1 if it isn't.
      * @param {number} x
      * @param {number} y
+     * @param {boolean} fullReturn - If set to true, will return an array with the id, column, and row.
      * @returns {number}
      */
-    withinCell(x, y) {
-        let xHit = false;
-        let yHit = false;
-        for (let i = 0; i < this.cells.length; i++) {
-            if (x >= this.cells[i][0] && x <= this.cells[i][0] + this.cells[i][2]) {
-                // xHit = true;
-            } else {
-                continue;
-            }
-            if (y >= this.cells[i][1] && y <= this.cells[i][1] + this.cells[i][3]) {
-                // yHit = true;
-            } else {
-                continue;
-            }
+    withinCell(x, y, fullReturn = false) {
+        let col = Math.floor(x / (this.cells[0][2] + this.border.margin));
+        let row = Math.floor(y / (this.cells[0][3] + this.border.margin));
 
-            return i;
-            // if (xHit === true && yHit === false) {
+        // if the coords are out of the grid's bounds:
+        if (col > this.col || col < 0 || row > this.row || row < 0) {return -1;}
 
-            // } else if (xHit === false && yHit === true) {
-
-            // } else {
-            //     return i;
-            // }
+        if (fullReturn === false) {
+            return col + (row * this.columns);
+        } else {
+            return [col + (row * this.columns), col, row];
         }
-
-        // if nothing is found
-        return -1;
     }
 };

@@ -18,7 +18,8 @@ const disp = new Hoot(document.querySelector("#disp"), "rgb(0, 0, 0)");
 // grid setup
 Griddy.canvas = disp;
 Griddy.ctx = disp.ctx;
-Griddy.border.margin = 25;
+Griddy.border.margin = 5;
+Griddy.border.color = "rgb(200, 215, 210)";
 Griddy.updateCells();
 window.addEventListener("resize", () => {
     Griddy.updateCells();
@@ -30,9 +31,9 @@ const TPSH = new LPSH("#tps-input", "#tps-confirm");
 
 // StdEntity setup
 StdEntity.ctx = disp.ctx;
-StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, 25);
+StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
 window.addEventListener("resize", () => {
-    StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, 25);
+    StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
 });
 
 // test entity setup
@@ -175,6 +176,13 @@ function initDraw(fps) {
     anim = setInterval(() => {
         // clean screen
         disp.clear();
+
+        // draw border
+        disp.ctx.fillStyle = "rgb(255, 255, 255)";
+        disp.ctx.fillRect(0, 0, Griddy.border.margin, disp.height);
+        disp.ctx.fillRect(disp.width - Griddy.border.margin, 0, Griddy.border.margin, disp.height);
+        disp.ctx.fillRect(0, 0, disp.width, Griddy.border.margin)
+        disp.ctx.fillRect(0, disp.height - Griddy.border.margin, disp.width, Griddy.border.margin);
         
         // debug
         debugCells(cellsDebugFlag);
