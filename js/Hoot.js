@@ -9,8 +9,16 @@ export class Hoot {
         window.addEventListener("resize", () => this.resize());
     }
     resize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        let per = 1;
+        let temp = ((window.innerWidth * 9) / 16) * per;
+        
+        if (temp > window.innerHeight) {
+            this.canvas.width = ((window.innerHeight * 16) / 9) * per;
+            this.canvas.height = window.innerHeight * per;
+        } else {
+            this.canvas.width = window.innerWidth * per;
+            this.canvas.height = temp;
+        }
         this.clear();
     }
     clear() {
