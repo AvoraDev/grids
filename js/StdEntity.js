@@ -33,13 +33,15 @@ export class StdEntity {
         this.y = y
         this.color = appearance.color;
         this.size = (typeof(appearance.size) === "object") ?
-            appearance.size : {
+            appearance.size :
+            {
                 width: appearance.size,
                 height: appearance.size
             };
         this.shape = (appearance.shape != undefined) ? appearance.shape : "rectangle";
         this.direction = (typeof(mvInfo.direction) === "object") ?
-            mvInfo.direction : {
+            mvInfo.direction :
+            {
                 x: Math.cos(mvInfo.direction * (Math.PI / 180)),
                 y: Math.sin(mvInfo.direction * (Math.PI / 180))
             };
@@ -47,44 +49,39 @@ export class StdEntity {
             min: mvInfo.speed.min,
             max: mvInfo.speed.max,
             current: (mvInfo.speed.current != undefined) ?
-                mvInfo.speed.current : mvInfo.speed.min,
+                mvInfo.speed.current :
+                mvInfo.speed.min,
             turning: 0.05,
             acceleration: (mvInfo.speed.acceleration != undefined) ?
-                mvInfo.speed.acceleration : mvInfo.speed.max,
+                mvInfo.speed.acceleration :
+                mvInfo.speed.max,
             decelearation: (mvInfo.speed.decelearation != undefined) ?
-                mvInfo.speed.decelearation : mvInfo.speed.acceleration,
-            decelerate: function() {
-                if (this.current - this.decelearation < this.min) {
-                    this.current = this.min;
-                } else {
-                    this.current -= this.decelearation;
-                }
-            },
-            accelerate: function() { // name's gross
-                if (this.current + this.acceleration > this.max) {
-                    this.current = this.max;
-                } else {
-                    this.current += this.acceleration;
-                }
-            }
+                mvInfo.speed.decelearation :
+                mvInfo.speed.acceleration
         };
         // direction methods 
-        this.direction.magnitude = function() {
+        this.direction._magnitude = function() {
             return Math.sqrt(this.x**2 + this.y**2);
         }
-        this.direction.turn = (axis, targetDirection, sign = 1, speed = this.speed.turning) => {
-            sign = Math.sign(sign);
-            if (sign > 0) {
-                if (this.direction[axis] + speed > targetDirection) {
+        /**
+         * tURN
+         * @param {any} axis - "x", "y"
+         * @param {any} targetDirection - 1, 0, -1
+         * @returns {void}
+         */
+        this.direction._turn = (axis, targetDirection) => {
+            let sign = Math.sign(this.direction[axis]);
+            if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
+                if (this.direction[axis] + this.speed.turning > targetDirection) {
                     this.direction[axis] = targetDirection;
                 } else {
-                    this.direction[axis] += speed;
+                    this.direction[axis] += this.speed.turning;
                 }
-            } else if (sign < 0) {
-                if (this.direction[axis] - speed < targetDirection) {
+            } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
+                if (this.direction[axis] - this.speed.turning < targetDirection) {
                     this.direction[axis] = targetDirection;
                 } else {
-                    this.direction[axis] -= speed;
+                    this.direction[axis] -= this.speed.turning;
                 }
             }
         };
@@ -123,90 +120,82 @@ export class StdEntity {
         }
 
         // internal properties
-        // todo - find better name
         this.debug = false;
         this._inputConfig = {
+            // example with depricated "disabled" system
             up: {
-                action: {
-                    enabled: () => {
-                        this.direction.turn('y', 1);
-                        this.speed.accelerate();
-                    },
-                    disabled: () => {
-                        this.direction.turn('y', 0, -1);
+                action: () => {
+                    // enabled: () => {
+                        this.direction._turn('y', 1);
+                        if (this._inputConfig.left.flag === false && this._inputConfig.right.flag === false) {
+                            this.direction._turn('x', 0);
+                        }
+                        this._accelerate();
+                    // },
+                    /* disabled: () => {
+                        this.direction._turn('y', 0, -1);
                         if (this.direction.y === 0) {
                             this._inputConfig.up.flag.keyup = false;
                         }
                     }
+                    */
                 },
                 keybind: "KeyW",
-                flag: {
+                flag: false
+                /*{
                     keydown: false,
                     keyup: false
                 }
+                */
             },
             down: {
-                action: {
-                    enabled: () => {
-                        this.direction.turn('y', -1, -1);
-                        this.speed.accelerate();
-                    },
-                    disabled: () => {
-                        this.direction.turn('y', 0);
-                        if (this.direction.y === 0) {
-                            this._inputConfig.down.flag.keyup = false;
-                        }
+                action: () => {
+                    this.direction._turn('y', -1);
+                    if (this._inputConfig.left.flag === false && this._inputConfig.right.flag === false) {
+                        this.direction._turn('x', 0);
                     }
+                    this._accelerate();
                 },
                 keybind: "KeyS",
-                flag: {
-                    keydown: false,
-                    keyup: false
-                }
+                flag: false
             },
             left: {
-                action: {
-                    enabled: () => {
-                        this.direction.turn('x', -1, -1);
-                        this.speed.accelerate();
-                    },
-                    disabled: () => {
-                        this.direction.turn('x', 0);
-                        if (this.direction.x === 0) {
-                            this._inputConfig.left.flag.keyup = false;
-                        }
+                action: () => {
+                    this.direction._turn('x', -1);
+                    if (this._inputConfig.up.flag === false && this._inputConfig.down.flag === false) {
+                        this.direction._turn('y', 0);
                     }
+                    this._accelerate();
                 },
                 keybind: "KeyA",
-                flag: {
-                    keydown: false,
-                    keyup: false
-                }
+                flag: false
             },
             right: {
-                action: {
-                    enabled: () => {
-                        this.direction.turn('x', 1);
-                        this.speed.accelerate();
-                    },
-                    disabled: () => {
-                        this.direction.turn('x', 0, -1);
-                        if (this.direction.x === 0) {
-                            this._inputConfig.right.flag.keyup = false;
-                        }
+                action: () => {
+                    this.direction._turn('x', 1);
+                    if (this._inputConfig.up.flag === false && this._inputConfig.down.flag === false) {
+                        this.direction._turn('y', 0);
                     }
+                    this._accelerate();
                 },
                 keybind: "KeyD",
-                flag: {
-                    keydown: false,
-                    keyup: false
-                }
+                flag: false
             }
         };
-        
-        // extra setup
-        // leaving this for the user to set up
-        // this._initEventListeners();
+    }
+    _accelerate() {
+        if (this.speed.current + this.speed.acceleration > this.speed.max) {
+            this.speed.current = this.speed.max;
+        } else {
+            this.speed.current += this.speed.acceleration;
+        }
+    }
+    _decelerate() {
+        if (this.speed.current - this.speed.decelearation < this.speed.min) {
+            this.speed.current = this.speed.min;
+        } else {
+            this.speed.current -= this.speed.decelearation;
+        }
     }
     /**
      * Rotate a point around the origin (0, 0) using radians.
@@ -293,8 +282,8 @@ export class StdEntity {
     _drawDebugArrow() {
         // lot of calculations to make everything dynamic
         let extension = this.size.height * 0.25;
-        let newX = (this.direction.x / this.direction.magnitude()) * this.speed.current;
-        let newY = (this.direction.y / this.direction.magnitude()) * this.speed.current;
+        let newX = (this.direction.x / this.direction._magnitude()) * this.speed.current;
+        let newY = (this.direction.y / this.direction._magnitude()) * this.speed.current;
         StdEntity.ctx.beginPath();
         
         // arrow shaft
@@ -321,41 +310,14 @@ export class StdEntity {
         StdEntity.ctx.fillStyle = "rgb(255, 255, 255)";
         StdEntity.ctx.fill();
     }
-    /**
-     * Draw entity to canvas using it's shape.
-     * @returns {void}
-     */
-    draw() {
-        // todo - allow custom draw functions to be loaded
-        switch (this.shape) {
-            case "rectangle":
-            this._drawRectangle();
-            break;
-        case "circle":
-            this._drawCircle();
-            break;
-        case "triangle":
-            this._drawTriangle();
-            break;
-        default:
-            this._drawError();
-            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
-            break;
-        }
-        
-        // debugging
-        if (this.debug === true) {
-            this._drawDebugArrow();
-        }
-    }
     _move() {
         // normalize vector by dividing component by magnitude
         // todo - prevent snapping when going opposite direction
         if (this.direction.x === 0 && this.direction.y === 0) {
-            return undefined;
+            return;
         } else {
-            this.x += (this.direction.x / this.direction.magnitude()) * this.speed.current;
-            this.y -= (this.direction.y / this.direction.magnitude()) * this.speed.current;
+            this.x += (this.direction.x / this.direction._magnitude()) * this.speed.current;
+            this.y -= (this.direction.y / this.direction._magnitude()) * this.speed.current;
         }
     }
     _collisionDetection() {
@@ -378,25 +340,32 @@ export class StdEntity {
     _inputHandler(e, eventType) {
         Object.keys(this._inputConfig).forEach(key => {
             if (this._inputConfig[key].keybind === e.code) {
-                // change flag based on key state
-                this._inputConfig[key].flag.keydown = (eventType === "keydown") ? true : false;
-                this._inputConfig[key].flag.keyup = (eventType === "keyup") ? true : false;
+                this._inputConfig[key].flag = (eventType === "keydown") ? true : false;
+
+                // DEPRICATED
+                // this._inputConfig[key].flag.keydown = (eventType === "keydown") ? true : false; (old ver)
+                // this._inputConfig[key].flag.keyup = (eventType === "keyup") ? true : false;
             }
         });
     }
     _inputActionHandler() {
+        // only decelerate when no flags have been raised
         let anyFlagsTrue = false
-        // run through actions of every keybind with an enabled flag
+
+        // run through actions of every keybind with a flag raised
         Object.keys(this._inputConfig).forEach(key => {
-            if (this._inputConfig[key].flag.keydown === true) {
-                this._inputConfig[key].action.enabled();
+            if (this._inputConfig[key].flag === true) {
+                this._inputConfig[key].action(); // .enabled() (DEPRICATED)
                 anyFlagsTrue = true;
-            } else if (this._inputConfig[key].flag.keyup === true) {
-                this._inputConfig[key].action.disabled();
             }
+            
+            // DEPRICATED
+            // else if (this._inputConfig[key].flag.keyup === true) {
+            //     this._inputConfig[key].action.disabled();
+            // }
         });
         if (anyFlagsTrue === false) {
-            this.speed.decelerate();
+            this._decelerate();
         }
     }
     /**
@@ -410,10 +379,7 @@ export class StdEntity {
         this._inputConfig[name] = {
             action: action,
             keybind: keybind,
-            flag: {
-                keydown: false,
-                keyup: false
-            }
+            flag: false
         }
     }
     /**
@@ -433,6 +399,33 @@ export class StdEntity {
     tp(x, y) {
         this.x = x;
         this.y = y;
+    }
+    /**
+    * Draw entity to canvas using it's shape.
+    * @returns {void}
+    */
+    draw() {
+        // todo - allow custom draw functions to be loaded
+        switch (this.shape) {
+            case "rectangle":
+            this._drawRectangle();
+            break;
+        case "circle":
+            this._drawCircle();
+            break;
+        case "triangle":
+            this._drawTriangle();
+            break;
+        default:
+            this._drawError();
+            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
+            break;
+        }
+        
+        // debugging
+        if (this.debug === true) {
+            this._drawDebugArrow();
+        }
     }
     /**
      * Update position, check collision, and handle any user inputs.

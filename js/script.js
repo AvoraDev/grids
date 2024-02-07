@@ -42,7 +42,7 @@ const test = new StdEntity(
     disp.height / 2,
     {
         color: "rgb(255, 0, 0)",
-        shape: "circle",
+        shape: "triangle",
         size: 20
     },
     {
@@ -52,7 +52,7 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 10,
+            max: 5,
             acceleration: 1
         }
     }
@@ -62,35 +62,30 @@ test.initEventListeners();
 // bullets WIP
 test.NPCs = [];
 test.shootCooldown = new Date();
-test.addKeybind("shoot", "Space", {
-    enabled: () => {
-        let currentTime = new Date();
-        if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
-            test.NPCs.push(new NPC(
-                test.x,
-                test.y,
-                {
-                    color: "rgb(0, 255, 255)",
-                    shape: "triangle",
-                    size: test.size.width * 0.75
+test.addKeybind("shoot", "Space", () => {
+    let currentTime = new Date();
+    if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
+        test.NPCs.push(new NPC(
+            test.x,
+            test.y,
+            {
+                color: "rgb(0, 255, 255)",
+                shape: "triangle",
+                size: test.size.width * 0.75
+            },
+            {
+                direction: {
+                    x: test.direction.x,
+                    y: test.direction.y
                 },
-                {
-                    direction: {
-                        x: test.direction.x,
-                        y: test.direction.y
-                    },
-                    speed: {
-                        min: test.speed.max * 1.25,
-                        max: test.speed.max * 1.25
-                    }
+                speed: {
+                    min: test.speed.max * 1.25,
+                    max: test.speed.max * 1.25
                 }
-            ))
-            test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
-            test.shootCooldown = new Date();
-        }
-    },
-    disabled: () => {
-        test._inputConfig.shoot.flag.keyup = false;
+            }
+        ))
+        test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
+        test.shootCooldown = new Date();
     }
 });
 
@@ -109,25 +104,15 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             dX: ${test.direction.x.toFixed(2)}<br>
             dY: ${test.direction.y.toFixed(2)}<br>
             angle: ${(Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)).toFixed(2)}&deg;<br>
-            speed: ${test.speed.current}<br>
-            magnitude: ${test.direction.magnitude().toFixed(2)}<br>
+            speed: ${test.speed.current.toFixed(2)}<br>
+            magnitude: ${test.direction._magnitude().toFixed(2)}<br>
             <br>
             Flags:<br>
-            up:<br>
-            - down: <span style="color:${test._inputConfig.up.flag.keydown ? tru : fal}">${test._inputConfig.up.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputConfig.up.flag.keyup ? tru : fal}">${test._inputConfig.up.flag.keyup}</span><br>
-            down:<br>
-            - down: <span style="color:${test._inputConfig.down.flag.keydown ? tru : fal}">${test._inputConfig.down.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputConfig.down.flag.keyup ? tru : fal}">${test._inputConfig.down.flag.keyup}</span><br>
-            left:<br>
-            - down: <span style="color:${test._inputConfig.left.flag.keydown ? tru : fal}">${test._inputConfig.left.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputConfig.left.flag.keyup ? tru : fal}">${test._inputConfig.left.flag.keyup}</span><br>
-            right:<br>
-            - down: <span style="color:${test._inputConfig.right.flag.keydown ? tru : fal}">${test._inputConfig.right.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputConfig.right.flag.keyup ? tru : fal}">${test._inputConfig.right.flag.keyup}</span><br>
-            shoot:<br>
-            - down: <span style="color:${test._inputConfig.shoot.flag.keydown ? tru : fal}">${test._inputConfig.shoot.flag.keydown}</span><br>
-            - up: <span style="color:${test._inputConfig.shoot.flag.keyup ? tru : fal}">${test._inputConfig.shoot.flag.keyup}</span><br>
+            up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
+            down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
+            left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
+            right: <span style="color:${test._inputConfig.right.flag ? tru : fal}">${test._inputConfig.right.flag}</span><br>
+            shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
             <br>
             NPCs: ${test.NPCs.length}<br>
             Cells: ${Griddy.cells.length}
