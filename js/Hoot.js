@@ -1,12 +1,12 @@
 export class Hoot {
-    constructor(canvas, color = "rgb(0, 0, 0)") {
+    constructor(canvas, color = 'rgb(0, 0, 0)') {
         this.canvas = canvas;
         this.color = color;
-        this.ctx = canvas.getContext("2d");
+        this.ctx = canvas.getContext('2d');
 
         // setup auto-resize;
         this.resize();
-        window.addEventListener("resize", () => this.resize());
+        window.addEventListener('resize', () => this.resize());
     }
     resize() {
         let per = 1;

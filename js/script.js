@@ -52,8 +52,8 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 5,
-            acceleration: 1
+            max: 10,
+            acceleration: 5
         }
     }
 );

@@ -6,7 +6,7 @@ export const Griddy = {
     border: {
         size: 2,
         margin: 0,
-        color: "rgb(255, 255, 255)"
+        color: 'rgb(255, 255, 255)'
     },
     debug: false,
     cells: [],
@@ -50,7 +50,7 @@ export const Griddy = {
         // for debug text
         if (this.debug === true) {
             this.ctx.fillStyle = this.border.color;
-            this.ctx.textAlign = "center";
+            this.ctx.textAlign = 'center';
             this.ctx.font = `${this.cells[0][2] / 7}px Ariel`
         }
 
