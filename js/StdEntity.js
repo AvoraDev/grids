@@ -32,13 +32,15 @@ export class StdEntity {
         this.x = x;
         this.y = y
         this.color = appearance.color;
-        this.size = (typeof(appearance.size) === 'object') ?
-            appearance.size :
+        this.size = (typeof(appearance.size) != 'object') ?
             {
                 width: appearance.size,
                 height: appearance.size
-            };
-        this.shape = (appearance.shape != undefined) ? appearance.shape : 'rectangle';
+            } :
+            appearance.size;
+        this.shape = (appearance.shape === undefined) ?
+            'rectangle' :
+            appearance.shape;
         this.direction = (typeof(mvInfo.direction) === 'object') ?
             mvInfo.direction :
             {
