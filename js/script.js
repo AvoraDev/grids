@@ -1,13 +1,22 @@
-// !!! IMPORTANT NOTE !!!
-// you need to decide if you want to keep adding functions for resizing
-// its getting annoying
-
 // module imports
 import { Hoot } from "./Hoot.js";
 import { Griddy } from "./Griddy.js";
 import { StdEntity } from "./StdEntity.js";
 import { NPC } from "./NPC.js";
 import { LPSH } from "./LPSH.js";
+
+// :D (from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system)
+switch(window.location.protocol) {
+    case 'http:':
+    case 'https:':
+        document.title += ": remote";
+        break;
+    case 'file:':
+        document.title += ": local";
+        break;
+        default: 
+        document.title += ": ?";
+}
 
 // HTML elements
 const debug_text = document.querySelector("#debug-text");
@@ -52,12 +61,31 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 10,
-            acceleration: 5
+            max: 7,
+            acceleration: 4
         }
     }
 );
 test.initEventListeners();
+
+// test NPC setup
+const colTest = new NPC(
+    disp.width / 2,
+    disp.height / 2,
+    {
+        color: "rgb(0, 255, 150)",
+        shape: "circle",
+        size: 40
+    },
+    {
+        direction: 45,
+        speed: {
+            min: 5,
+            max: 5
+        }
+    }
+)
+colTest.collisionConfig.rebound = true;
 
 // bullets WIP
 test.NPCs = [];
@@ -175,7 +203,8 @@ function initDraw(fps) {
         // draw grid
         Griddy.draw();
 
-        // draw test entity
+        // draw test entities
+        colTest.draw();
         test.draw();
 
         // npc jazz
@@ -197,10 +226,35 @@ function initCalc(tps) { // ticks per second
     calc = setInterval(() => {
         // update stuff
         test.update();
-        
-        // npc jazz
+        colTest.update();
         for (let i = 0; i < test.NPCs.length; i++) {
             test.NPCs[i].update();
+            if (
+                    test.NPCs[i].y > colTest.y - (colTest.height / 2) &&    // top
+                    test.NPCs[i].y < colTest.y + (colTest.height / 2) &&    // bottom
+                    test.NPCs[i].x > colTest.x - (colTest.width / 2) &&     // left
+                    test.NPCs[i].x < colTest.x + (colTest.width / 2)        // right
+            ) {
+                test.NPCs[i].color = "rgb(100, 0, 255)";
+                console.log("npc hit")
+            } else {
+                test.NPCs[i].color = "rgb(0, 255, 255)";
+            }
+        }
+
+        // check if two points are within a radius of one another
+        // left side < x < right side
+        // top side < x < bottom side
+        if (
+                test.y > colTest.y - (colTest.height / 2) &&    // top
+                test.y < colTest.y + (colTest.height / 2) &&    // bottom
+                test.x > colTest.x - (colTest.width / 2) &&     // left
+                test.x < colTest.x + (colTest.width / 2)        // right
+            ) {
+                test.color = "rgb(100, 0, 255)";
+                console.log("test hit")
+        } else {
+            test.color = "rgb(255, 0, 0)";
         }
 
         // debugging

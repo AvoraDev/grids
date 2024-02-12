@@ -437,4 +437,8 @@ export class StdEntity {
         this.drawSpace.width = width - margin;
         this.drawSpace.height = height - margin;
     }
+    get width() {return this.size.width;}
+    get height() {return this.size.height}
+    set width(width) {this.size.width = width;}
+    set height(height) {this.size.height = height;}
 }
