@@ -263,7 +263,6 @@ window.addEventListener("keypress", e => {
             break;
         
         case "KeyJ":
-            // basic toggle, don't feel the need to keep a global variable for it
             toggleHTMLDisplay("#keybind-menu", "block", "none");
             break;
         

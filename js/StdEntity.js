@@ -69,19 +69,19 @@ export class StdEntity {
          * @param {any} targetDirection - 1, 0, -1
          * @returns {void}
          */
-        this.direction._turn = (axis, targetDirection) => {
+        this.direction._turn = (axis, targetDirection, speedMultiplier = 1) => {
             let sign = Math.sign(this.direction[axis]);
             if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
-                if (this.direction[axis] + this.speed.turning > targetDirection) {
+                if (this.direction[axis] + this.speed.turning * speedMultiplier > targetDirection) {
                     this.direction[axis] = targetDirection;
                 } else {
-                    this.direction[axis] += this.speed.turning;
+                    this.direction[axis] += this.speed.turning * speedMultiplier;
                 }
             } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
-                if (this.direction[axis] - this.speed.turning < targetDirection) {
+                if (this.direction[axis] - this.speed.turning * speedMultiplier < targetDirection) {
                     this.direction[axis] = targetDirection;
                 } else {
-                    this.direction[axis] -= this.speed.turning;
+                    this.direction[axis] -= this.speed.turning * speedMultiplier;
                 }
             }
         };
@@ -122,62 +122,23 @@ export class StdEntity {
         // internal properties
         this.debug = false;
         this._inputConfig = {
-            // example with depricated "disabled" system
             up: {
-                action: () => {
-                    // enabled: () => {
-                        this.direction._turn('y', 1);
-                        if (this._inputConfig.left.flag === false && this._inputConfig.right.flag === false) {
-                            this.direction._turn('x', 0);
-                        }
-                        this._accelerate();
-                    // },
-                    /* disabled: () => {
-                        this.direction._turn('y', 0, -1);
-                        if (this.direction.y === 0) {
-                            this._inputConfig.up.flag.keyup = false;
-                        }
-                    }
-                    */
-                },
+                action: () => {this._defaultMovement('y', 1, ['left', 'right'])},
                 keybind: "KeyW",
                 flag: false
-                /*{
-                    keydown: false,
-                    keyup: false
-                }
-                */
             },
             down: {
-                action: () => {
-                    this.direction._turn('y', -1);
-                    if (this._inputConfig.left.flag === false && this._inputConfig.right.flag === false) {
-                        this.direction._turn('x', 0);
-                    }
-                    this._accelerate();
-                },
+                action: () => {this._defaultMovement('y', -1, ['left', 'right']);},
                 keybind: "KeyS",
                 flag: false
             },
             left: {
-                action: () => {
-                    this.direction._turn('x', -1);
-                    if (this._inputConfig.up.flag === false && this._inputConfig.down.flag === false) {
-                        this.direction._turn('y', 0);
-                    }
-                    this._accelerate();
-                },
+                action: () => {this._defaultMovement('x', -1, ['up', 'down'])},
                 keybind: "KeyA",
                 flag: false
             },
             right: {
-                action: () => {
-                    this.direction._turn('x', 1);
-                    if (this._inputConfig.up.flag === false && this._inputConfig.down.flag === false) {
-                        this.direction._turn('y', 0);
-                    }
-                    this._accelerate();
-                },
+                action: () => {this._defaultMovement('x', 1, ['up', 'down']);},
                 keybind: "KeyD",
                 flag: false
             }
@@ -197,6 +158,30 @@ export class StdEntity {
             this.speed.current -= this.speed.decelearation;
         }
     }
+    _defaultMovement = (axis, targetDirection, sideFlags, spinBuffer = 0.25) => {
+        // turns
+        if (targetDirection > 0) { // + 
+            if (this.direction[axis] < 0 - spinBuffer) {
+                this.direction._turn(axis, targetDirection, 4);
+            } else {
+                this.direction._turn(axis, targetDirection);
+            }
+        } else { // -
+            if (this.direction[axis] > 0 + spinBuffer) {
+                this.direction._turn(axis, targetDirection, 4);
+            } else {
+                this.direction._turn(axis, targetDirection);
+            }
+        }
+        
+        // opposite axis realignment (?)
+        if (this._inputConfig[sideFlags[0]].flag === false && this._inputConfig[sideFlags[1]].flag === false) {
+            this.direction._turn((axis === 'x') ? 'y' : 'x', 0);
+        }
+
+        // start shmoovin' (this should be further worked on)
+        this._accelerate();
+    };
     /**
      * Rotate a point around the origin (0, 0) using radians.
      * @param {number} x
