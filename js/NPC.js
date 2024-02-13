@@ -4,7 +4,7 @@ export class NPC extends StdEntity {
     constructor(x, y, appearance, movementInfo) {
         super(x, y, appearance, movementInfo);
     }
-    update() {
+    _update() {
         // this is the only real difference so i'm not sure if it should have it's own file
         // this.draw();
         this._move();

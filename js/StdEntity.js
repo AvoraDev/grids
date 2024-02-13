@@ -2,6 +2,7 @@ export class StdEntity {
     // canvas context
     static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
+    static entities = [];
     /**
      * Create an instance of StdEntity.
      * 
@@ -143,6 +144,10 @@ export class StdEntity {
                 flag: false
             }
         };
+
+        // general stuff (?)
+        StdEntity.entities.push(this);
+        this.id = StdEntity.entities.length - 1;
     }
     _accelerate() {
         if (this.speed.current + this.speed.acceleration > this.speed.max) {
@@ -321,6 +326,26 @@ export class StdEntity {
             // run onCollision
             this.collisionConfig.onCollision.y();
         }
+
+        // prelimenary collision detection
+        // if (
+        //     test.y > colTest.y - (colTest.height / 2) &&    // top
+        //     test.y < colTest.y + (colTest.height / 2) &&    // bottom
+        //     test.x > colTest.x - (colTest.width / 2) &&     // left
+        //     test.x < colTest.x + (colTest.width / 2)        // right
+        // ) {
+        //     test.color = "rgb(100, 0, 255)";
+        //     console.log("test hit")
+        // } else {
+            // test.color = "rgb(255, 0, 0)";
+        // }
+
+        // 'sweep and prune' broad phase algorithm
+        // example:
+        // check if any item's minimum x value is equal or less than the current items maximum x value
+        // for (let i = 0; i < StdEntity.entities.length; i++) {
+
+        // }
     }
     _inputHandler(e, eventType) {
         Object.keys(this._inputConfig).forEach(key => {
@@ -340,8 +365,11 @@ export class StdEntity {
         // run through actions of every keybind with a flag raised
         Object.keys(this._inputConfig).forEach(key => {
             if (this._inputConfig[key].flag === true) {
-                this._inputConfig[key].action(); // .enabled() (DEPRICATED)
-                anyFlagsTrue = true;
+                this._inputConfig[key].action();
+                
+                if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
+                    anyFlagsTrue = true;
+                }
             }
             
             // DEPRICATED
@@ -352,6 +380,35 @@ export class StdEntity {
         if (anyFlagsTrue === false) {
             this._decelerate();
         }
+    }
+    _draw() {
+        // todo - allow custom draw functions to be loaded
+        switch (this.shape) {
+            case 'rectangle':
+            this._drawRectangle();
+            break;
+        case 'circle':
+            this._drawCircle();
+            break;
+        case 'triangle':
+            this._drawTriangle();
+            break;
+        default:
+            this._drawError();
+            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
+            break;
+        }
+        
+        // debugging
+        if (this.debug === true) {
+            this._drawDebugArrow();
+        }
+    }
+    _update() {
+        // this._draw();
+        this._move();
+        this._collisionDetection();
+        this._inputActionHandler();
     }
     /**
      * Add a keybind to an instance of StdEntity.
@@ -386,43 +443,6 @@ export class StdEntity {
         this.y = y;
     }
     /**
-    * Draw entity to canvas using it's shape.
-    * @returns {void}
-    */
-    draw() {
-        // todo - allow custom draw functions to be loaded
-        switch (this.shape) {
-            case 'rectangle':
-            this._drawRectangle();
-            break;
-        case 'circle':
-            this._drawCircle();
-            break;
-        case 'triangle':
-            this._drawTriangle();
-            break;
-        default:
-            this._drawError();
-            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
-            break;
-        }
-        
-        // debugging
-        if (this.debug === true) {
-            this._drawDebugArrow();
-        }
-    }
-    /**
-     * Update position, check collision, and handle any user inputs.
-     * @returns {void}
-     */
-    update() {
-        // this.draw();
-        this._move();
-        this._collisionDetection();
-        this._inputActionHandler();
-    }
-    /**
      * Resize the space where an entity is allowed to be. Affects all instances.
      * @param {number} x
      * @param {number} y
@@ -436,6 +456,16 @@ export class StdEntity {
         this.drawSpace.y = y + margin;
         this.drawSpace.width = width - margin;
         this.drawSpace.height = height - margin;
+    }
+    static drawAll() {
+        for (let i = 0; i < this.entities.length; i++) {
+            this.entities[i]._draw();
+        }
+    }
+    static updateAll() {
+        for (let i = 0; i < this.entities.length; i++) {
+            this.entities[i]._update();
+        }
     }
     get width() {return this.size.width;}
     get height() {return this.size.height}

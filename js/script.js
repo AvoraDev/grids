@@ -7,7 +7,7 @@ import { LPSH } from "./LPSH.js";
 
 // :D (from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system)
 switch(window.location.protocol) {
-    case 'http:':
+    case 'http:': // never thought about doing this, its cool
     case 'https:':
         document.title += ": remote";
         break;
@@ -177,10 +177,17 @@ function debugCells(flag = false) {
         Griddy.debug = false;
     }
 }
+function drawBorder() {
+    disp.ctx.fillStyle = "rgb(255, 255, 255)";
+    disp.ctx.fillRect(0, 0, Griddy.border.margin, disp.height);
+    disp.ctx.fillRect(disp.width - Griddy.border.margin, 0, Griddy.border.margin, disp.height);
+    disp.ctx.fillRect(0, 0, disp.width, Griddy.border.margin)
+    disp.ctx.fillRect(0, disp.height - Griddy.border.margin, disp.width, Griddy.border.margin);
+}
 
 let anim;
 let calc; // todo - name
-function initDraw(fps) {
+function _initDraw(fps) {
     // clear previous interval
     clearInterval(anim);
 
@@ -191,11 +198,7 @@ function initDraw(fps) {
         disp.clear();
 
         // draw border
-        disp.ctx.fillStyle = "rgb(255, 255, 255)";
-        disp.ctx.fillRect(0, 0, Griddy.border.margin, disp.height);
-        disp.ctx.fillRect(disp.width - Griddy.border.margin, 0, Griddy.border.margin, disp.height);
-        disp.ctx.fillRect(0, 0, disp.width, Griddy.border.margin)
-        disp.ctx.fillRect(0, disp.height - Griddy.border.margin, disp.width, Griddy.border.margin);
+        drawBorder();
         
         // debug
         debugCells(cellsDebugFlag);
@@ -204,13 +207,7 @@ function initDraw(fps) {
         Griddy.draw();
 
         // draw test entities
-        colTest.draw();
-        test.draw();
-
-        // npc jazz
-        for (let i = 0; i < test.NPCs.length; i++) {
-            test.NPCs[i].draw();
-        }
+        StdEntity.drawAll();
 
         FPSH.log();
     }, 1000 / fps);
@@ -218,44 +215,14 @@ function initDraw(fps) {
     // log init
     console.log(`Init with ${fps} FPS set`);
 }
-function initCalc(tps) { // ticks per second
+function _initCalc(tps) { // ticks per second
     // clear previous interval
     clearInterval(calc);
 
     // start new one with given tps
     calc = setInterval(() => {
         // update stuff
-        test.update();
-        colTest.update();
-        for (let i = 0; i < test.NPCs.length; i++) {
-            test.NPCs[i].update();
-            if (
-                    test.NPCs[i].y > colTest.y - (colTest.height / 2) &&    // top
-                    test.NPCs[i].y < colTest.y + (colTest.height / 2) &&    // bottom
-                    test.NPCs[i].x > colTest.x - (colTest.width / 2) &&     // left
-                    test.NPCs[i].x < colTest.x + (colTest.width / 2)        // right
-            ) {
-                test.NPCs[i].color = "rgb(100, 0, 255)";
-                console.log("npc hit")
-            } else {
-                test.NPCs[i].color = "rgb(0, 255, 255)";
-            }
-        }
-
-        // check if two points are within a radius of one another
-        // left side < x < right side
-        // top side < x < bottom side
-        if (
-                test.y > colTest.y - (colTest.height / 2) &&    // top
-                test.y < colTest.y + (colTest.height / 2) &&    // bottom
-                test.x > colTest.x - (colTest.width / 2) &&     // left
-                test.x < colTest.x + (colTest.width / 2)        // right
-            ) {
-                test.color = "rgb(100, 0, 255)";
-                console.log("test hit")
-        } else {
-            test.color = "rgb(255, 0, 0)";
-        }
+        StdEntity.updateAll();
 
         // debugging
         debugTxt(txtDebugFlag, "rgb(0, 255, 255)", "rgb(255, 150, 100)")
@@ -267,11 +234,8 @@ function initCalc(tps) { // ticks per second
 }
 function init(fps = 60, tps = 60) {
     // begin jazz
-    initDraw(fps);
-    initCalc(tps);
-
-    // log init
-    // console.log(`Init with ${fps} FPS and ${tps} TPS set`);
+    _initDraw(fps);
+    _initCalc(tps);
 }
 
 // begin (lol)
@@ -284,8 +248,8 @@ function init(fps = 60, tps = 60) {
 // ------------------------------------------------------------
 
 // misc
-FPSH.confirm.onclick = () => {FPSH.clearSamples(); initDraw(FPSH.input.value);};
-TPSH.confirm.onclick = () => {TPSH.clearSamples(); initCalc(TPSH.input.value);};
+FPSH.confirm.onclick = () => {FPSH.clearSamples(); _initDraw(FPSH.input.value);};
+TPSH.confirm.onclick = () => {TPSH.clearSamples(); _initCalc(TPSH.input.value);};
 document.querySelector("#grid-rows-confirm").onclick = () => {
     Griddy.rows = document.querySelector("#grid-rows-input").value;
     Griddy.updateCells();
