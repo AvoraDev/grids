@@ -52,7 +52,8 @@ const test = new StdEntity(
     {
         color: "rgb(255, 0, 0)",
         shape: "triangle",
-        size: 20
+        size: 20,
+        zDepth: 1
     },
     {
         direction: {
@@ -75,7 +76,8 @@ const colTest = new NPC(
     {
         color: "rgb(0, 255, 150)",
         shape: "circle",
-        size: 40
+        size: 40,
+        zDepth: -1
     },
     {
         direction: -45,
@@ -133,7 +135,7 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             dY: ${test.direction.y.toFixed(2)}<br>
             angle: ${(Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)).toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
-            magnitude: ${test.direction._magnitude().toFixed(2)}<br>
+            magnitude: ${test.dirMagnitude.toFixed(2)}<br>
             <br>
             Flags:<br>
             up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>

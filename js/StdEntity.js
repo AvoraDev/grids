@@ -2,7 +2,9 @@ export class StdEntity {
     // canvas context
     static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
+    // all entities
     static entities = [];
+    static depths = {};
     /**
      * Create an instance of StdEntity.
      * 
@@ -11,6 +13,7 @@ export class StdEntity {
      * - size (if one value is given for size, width and height will be set the same)
      *     - width
      *     - height
+     * - zDepth
      * 
      * mvInfo properties:
      * - direction (A number value in degrees can be given to find each component automatically)
@@ -29,7 +32,6 @@ export class StdEntity {
      * @returns {onject}
      */
 	constructor(x, y, appearance, mvInfo) {
-  	    // unique properties
         this.x = x;
         this.y = y
         this.color = appearance.color;
@@ -42,6 +44,9 @@ export class StdEntity {
         this.shape = (appearance.shape === undefined) ?
             'rectangle' :
             appearance.shape;
+        this.zDepth = (appearance.zDepth === undefined) ?
+            0 :
+            appearance.zDepth;
         this.direction = (typeof(mvInfo.direction) === 'object') ?
             mvInfo.direction :
             {
@@ -61,31 +66,6 @@ export class StdEntity {
             decelearation: (mvInfo.speed.decelearation === undefined) ?
                 mvInfo.speed.acceleration * 0.25:
                 mvInfo.speed.decelearation
-        };
-
-        // direction methods 
-        this.direction._magnitude = function() {return Math.sqrt(this.x**2 + this.y**2);}
-        /**
-         * tURN
-         * @param {any} axis - 'x', 'y'
-         * @param {any} targetDirection - 1, 0, -1
-         * @returns {void}
-         */
-        this.direction._turn = (axis, targetDirection, speedMultiplier = 1) => {
-            let sign = Math.sign(this.direction[axis]);
-            if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
-                if (this.direction[axis] + this.speed.turning * speedMultiplier > targetDirection) {
-                    this.direction[axis] = targetDirection;
-                } else {
-                    this.direction[axis] += this.speed.turning * speedMultiplier;
-                }
-            } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
-                if (this.direction[axis] - this.speed.turning * speedMultiplier < targetDirection) {
-                    this.direction[axis] = targetDirection;
-                } else {
-                    this.direction[axis] -= this.speed.turning * speedMultiplier;
-                }
-            }
         };
         this.debug = false;
         this.collisionConfig = {
@@ -115,9 +95,19 @@ export class StdEntity {
             }
         };
 
-        // general stuff (?)
+        // add to class's arrs
         StdEntity.entities.push(this);
         this.id = StdEntity.entities.length - 1;
+
+        // zDepth pain
+        let dId = (this.zDepth < 0) ?
+            `n${this.zDepth}` :
+            `p${this.zDepth}`;
+
+        if (typeof(StdEntity.depths[dId]) === 'undefined') {
+            StdEntity.depths[dId] = [];
+        }
+        StdEntity.depths[dId].push(this.id);
     }
     _accelerate() {
         if (this.speed.current + this.speed.acceleration > this.speed.max) {
@@ -133,25 +123,47 @@ export class StdEntity {
             this.speed.current -= this.speed.decelearation;
         }
     }
+    /**
+     * tURN
+     * @param {any} axis - 'x', 'y'
+     * @param {any} targetDirection - 1, 0, -1
+     * @returns {void}
+     */
+    _turn = (axis, targetDirection, speedMultiplier = 1) => {
+        let sign = Math.sign(this.direction[axis]);
+        if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
+            if (this.direction[axis] + this.speed.turning * speedMultiplier > targetDirection) {
+                this.direction[axis] = targetDirection;
+            } else {
+                this.direction[axis] += this.speed.turning * speedMultiplier;
+            }
+        } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
+            if (this.direction[axis] - this.speed.turning * speedMultiplier < targetDirection) {
+                this.direction[axis] = targetDirection;
+            } else {
+                this.direction[axis] -= this.speed.turning * speedMultiplier;
+            }
+        }
+    };
     _defaultMovement = (axis, targetDirection, sideFlags, spinBuffer = 0.25) => {
         // turns
         if (targetDirection > 0) { // + 
             if (this.direction[axis] < 0 - spinBuffer) {
-                this.direction._turn(axis, targetDirection, 4);
+                this._turn(axis, targetDirection, 4);
             } else {
-                this.direction._turn(axis, targetDirection);
+                this._turn(axis, targetDirection);
             }
         } else { // -
             if (this.direction[axis] > 0 + spinBuffer) {
-                this.direction._turn(axis, targetDirection, 4);
+                this._turn(axis, targetDirection, 4);
             } else {
-                this.direction._turn(axis, targetDirection);
+                this._turn(axis, targetDirection);
             }
         }
         
         // opposite axis realignment (?)
         if (this._inputConfig[sideFlags[0]].flag === false && this._inputConfig[sideFlags[1]].flag === false) {
-            this.direction._turn((axis === 'x') ? 'y' : 'x', 0);
+            this._turn((axis === 'x') ? 'y' : 'x', 0);
         }
 
         // start shmoovin' (this should be further worked on)
@@ -242,8 +254,8 @@ export class StdEntity {
     _drawDebugArrow() {
         // lot of calculations to make everything dynamic
         let extension = this.size.height * 0.25;
-        let newX = (this.direction.x / this.direction._magnitude()) * this.speed.current;
-        let newY = (this.direction.y / this.direction._magnitude()) * this.speed.current;
+        let newX = (this.direction.x / this.dirMagnitude) * this.speed.current;
+        let newY = (this.direction.y / this.dirMagnitude) * this.speed.current;
         StdEntity.ctx.beginPath();
         
         // arrow shaft
@@ -276,8 +288,8 @@ export class StdEntity {
         if (this.direction.x === 0 && this.direction.y === 0) {
             return;
         } else {
-            this.x += (this.direction.x / this.direction._magnitude()) * this.speed.current;
-            this.y -= (this.direction.y / this.direction._magnitude()) * this.speed.current;
+            this.x += (this.direction.x / this.dirMagnitude) * this.speed.current;
+            this.y -= (this.direction.y / this.dirMagnitude) * this.speed.current;
         }
     }
     _resolveCollision(a) {
@@ -474,9 +486,12 @@ export class StdEntity {
         this.drawSpace.height = height - margin;
     }
     static drawAll() {
-        for (let i = 0; i < this.entities.length; i++) {
-            this.entities[i]._draw();
-        }
+        // note: the sort function could be a preformance issue
+        Object.keys(this.depths).sort().forEach(level => {
+            this.depths[level].forEach(i => {
+                this.entities[i]._draw();
+            });
+        });
     }
     static updateAll() {
         for (let i = 0; i < this.entities.length; i++) {
@@ -487,7 +502,9 @@ export class StdEntity {
     get height() {return this.size.height}
     set width(width) {this.size.width = width;}
     set height(height) {this.size.height = height;}
-    
+    get dirMagnitude() {
+        return Math.sqrt(this.direction.x**2 + this.direction.y**2);
+    }
     /**
      * Get collision points in a 2D object array
      * Order: [top left, top right, bottom left, bottom right]
