@@ -70,7 +70,7 @@ test.initEventListeners();
 
 // test NPC setup
 const colTest = new NPC(
-    disp.width / 2,
+    (disp.width / 2) + 50,
     disp.height / 2,
     {
         color: "rgb(0, 255, 150)",
@@ -78,7 +78,7 @@ const colTest = new NPC(
         size: 40
     },
     {
-        direction: 45,
+        direction: -45,
         speed: {
             min: 5,
             max: 5

@@ -62,6 +62,7 @@ export class StdEntity {
                 mvInfo.speed.acceleration * 0.25:
                 mvInfo.speed.decelearation
         };
+
         // direction methods 
         this.direction._magnitude = function() {return Math.sqrt(this.x**2 + this.y**2);}
         /**
@@ -86,42 +87,11 @@ export class StdEntity {
                 }
             }
         };
-        this.collisionConfig = {
-            rebound: false,
-            onCollision: {
-                x: () => {
-                    let halfWidth = (this.size.width / 2);
-                    // move entity back within drawSpace
-                    if (this.x - halfWidth < StdEntity.drawSpace.x) {
-                        this.x = StdEntity.drawSpace.x + halfWidth; // + this.size.width;
-                    } else {
-                        this.x = StdEntity.drawSpace.width - halfWidth;
-                    }
-
-                    // cause entity to rebound if it is enabled
-                    if (this.collisionConfig.rebound === true) {
-                        this.direction.x = -this.direction.x;
-                    }
-                },
-                y: () => {
-                    let halfHeight = (this.size.height / 2);
-                    // move entity back within drawSpace
-                    if (this.y - halfHeight < StdEntity.drawSpace.y) {
-                        this.y = StdEntity.drawSpace.y + halfHeight; // + this.size.height;
-                    } else {
-                        this.y = StdEntity.drawSpace.height - halfHeight;
-                    }
-                    
-                    // cause entity to rebound if it is enabled
-                    if (this.collisionConfig.rebound === true) {
-                        this.direction.y = -this.direction.y;
-                    }
-                }
-            }
-        }
-
-        // internal properties
         this.debug = false;
+        this.collisionConfig = {
+            invincible: false,
+            rebound: false
+        }
         this._inputConfig = {
             up: {
                 action: () => {this._defaultMovement('y', 1, ['left', 'right'])},
@@ -310,42 +280,88 @@ export class StdEntity {
             this.y -= (this.direction.y / this.direction._magnitude()) * this.speed.current;
         }
     }
+    _resolveCollision(a) {
+        if (a === 'x') {
+            let halfWidth = (this.size.width / 2);
+            // move entity back within drawSpace
+            if (this.x - halfWidth < StdEntity.drawSpace.x) {
+                this.x = StdEntity.drawSpace.x + halfWidth; // + this.size.width;
+            } else {
+                this.x = StdEntity.drawSpace.width - halfWidth;
+            }
+            
+            if (this.collisionConfig.rebound === true) {
+                this.direction.x = -this.direction.x;
+            }
+        }
+        if (a === 'y') {
+            let halfHeight = (this.size.height / 2);
+            // move entity back within drawSpace
+            if (this.y - halfHeight < StdEntity.drawSpace.y) {
+                this.y = StdEntity.drawSpace.y + halfHeight; // + this.size.height;
+            } else {
+                this.y = StdEntity.drawSpace.height - halfHeight;
+            }
+
+            if (this.collisionConfig.rebound === true) {
+                this.direction.y = -this.direction.y;
+            }
+        }
+    }
     _collisionDetection() {
-        // todo - work on collision for other objects
+        // outer bounds collision
+        // todo - see if it should only check when it's near the edge
         if (
                 this.x - (this.size.width / 2) < StdEntity.drawSpace.x ||
                 this.x + (this.size.width / 2) > StdEntity.drawSpace.width
             ) {
-            // run onCollision
-            this.collisionConfig.onCollision.x();
+                this._resolveCollision('x');
         }
         if (
                 this.y - (this.size.height / 2) < StdEntity.drawSpace.y ||
                 this.y + (this.size.height / 2) > StdEntity.drawSpace.height
             ) {
-            // run onCollision
-            this.collisionConfig.onCollision.y();
+                this._resolveCollision('y');
         }
 
-        // prelimenary collision detection
-        // if (
-        //     test.y > colTest.y - (colTest.height / 2) &&    // top
-        //     test.y < colTest.y + (colTest.height / 2) &&    // bottom
-        //     test.x > colTest.x - (colTest.width / 2) &&     // left
-        //     test.x < colTest.x + (colTest.width / 2)        // right
-        // ) {
-        //     test.color = "rgb(100, 0, 255)";
-        //     console.log("test hit")
-        // } else {
-            // test.color = "rgb(255, 0, 0)";
-        // }
-
         // 'sweep and prune' broad phase algorithm
-        // example:
-        // check if any item's minimum x value is equal or less than the current items maximum x value
-        // for (let i = 0; i < StdEntity.entities.length; i++) {
+        let possibleCollisions = [];
+        for (let i = 0; i < StdEntity.entities.length; i++) {
+            // skip itself
+            if (i === this.id) {
+                continue;
+            }
 
-        // }
+            // check if any item's min x value is equal or less than the current items max x value
+            // invert min and max to prune further
+            if (
+                (StdEntity.entities[i].x - (StdEntity.entities[i].width / 2)) <= (this.x + (this.size.width / 2)) &&
+                (StdEntity.entities[i].x + (StdEntity.entities[i].width / 2)) >= (this.x - (this.size.width / 2))
+            ) {
+                possibleCollisions.push(i);
+            }
+        }
+
+        // narrow phase
+        let mainPoints = this.collisionPoints;
+        mainPoints.forEach(point => {
+            possibleCollisions.forEach(entityId => {
+                let hWidth = StdEntity.entities[entityId].width / 2;
+                let hHeight = StdEntity.entities[entityId].height / 2;
+                if (
+                    (
+                        (point.x > StdEntity.entities[entityId].x - hWidth) &&
+                        (point.x < StdEntity.entities[entityId].x + hWidth)
+                    ) &&
+                    (
+                        (point.y > StdEntity.entities[entityId].y - hHeight) &&
+                        (point.y < StdEntity.entities[entityId].y + hHeight)
+                    )
+                ) {
+                    console.log('collision');
+                }
+            });
+        });
     }
     _inputHandler(e, eventType) {
         Object.keys(this._inputConfig).forEach(key => {
@@ -407,7 +423,7 @@ export class StdEntity {
     _update() {
         // this._draw();
         this._move();
-        this._collisionDetection();
+        if (this.collisionConfig.invincible === false) {this._collisionDetection();}
         this._inputActionHandler();
     }
     /**
@@ -471,4 +487,20 @@ export class StdEntity {
     get height() {return this.size.height}
     set width(width) {this.size.width = width;}
     set height(height) {this.size.height = height;}
+    
+    /**
+     * Get collision points in a 2D object array
+     * Order: [top left, top right, bottom left, bottom right]
+     * @returns {Array}
+     */
+    get collisionPoints() {
+        let hWidth = this.width / 2;
+        let hHeight = this.height / 2;
+        return [
+            {x: this.x - hWidth, y: this.y + hHeight}, // top left
+            {x: this.x + hWidth, y: this.y + hHeight}, // top right
+            {x: this.x - hWidth, y: this.y - hHeight}, // bottom left
+            {x: this.x + hWidth, y: this.y - hHeight}  // bottom right
+        ];
+    }
 }
