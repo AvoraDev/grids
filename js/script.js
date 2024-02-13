@@ -46,9 +46,11 @@ window.addEventListener("resize", () => {
 });
 
 // test entity setup
+const allMass = 1;
 const test = new StdEntity(
 	disp.width / 2,
     disp.height / 2,
+    allMass,
     {
         color: "rgb(255, 0, 0)",
         shape: "triangle",
@@ -62,7 +64,7 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 7,
+            max: 8,
             acceleration: 4
         }
     }
@@ -73,6 +75,7 @@ test.initEventListeners();
 const colTest = new NPC(
     (disp.width / 2) + 50,
     disp.height / 2,
+    allMass,
     {
         color: "rgb(0, 255, 150)",
         shape: "circle",
@@ -98,6 +101,7 @@ test.addKeybind("shoot", "Space", () => {
         test.NPCs.push(new NPC(
             test.x,
             test.y,
+            allMass,
             {
                 color: "rgb(0, 255, 255)",
                 shape: "triangle",
@@ -115,6 +119,7 @@ test.addKeybind("shoot", "Space", () => {
             }
         ))
         test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
+        console.log(StdEntity.entities);
         test.shootCooldown = new Date();
     }
 });
@@ -126,6 +131,9 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
     if (flag === true) {
         // wish this didn't have to be hand written
         try {
+            let angle = Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)
+            angle = (angle < 0) ? 360 + angle : angle;
+
             debug_text.innerHTML = `
             FPS: ${FPSH.getLPS().toFixed(2)}<br>
             TPS: ${TPSH.getLPS().toFixed(2)}<br>
@@ -133,7 +141,7 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             y: ${test.y.toFixed(2)}<br>
             dX: ${test.direction.x.toFixed(2)}<br>
             dY: ${test.direction.y.toFixed(2)}<br>
-            angle: ${(Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)).toFixed(2)}&deg;<br>
+            angle: ${angle.toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
             magnitude: ${test.dirMagnitude.toFixed(2)}<br>
             <br>

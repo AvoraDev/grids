@@ -31,9 +31,10 @@ export class StdEntity {
      * @param {object} mvInfo
      * @returns {onject}
      */
-	constructor(x, y, appearance, mvInfo) {
+	constructor(x, y, mass, appearance, mvInfo) {
         this.x = x;
-        this.y = y
+        this.y = y;
+        this.mass = mass;
         this.color = appearance.color;
         this.size = (typeof(appearance.size) != 'object') ?
             {
@@ -194,17 +195,17 @@ export class StdEntity {
     _drawRectangle() {
         StdEntity.ctx.fillStyle = this.color;
         StdEntity.ctx.fillRect(
-            this.x - (this.size.width / 2),
-            this.y - (this.size.height / 2),
-            this.size.width,
-            this.size.height
+            this.x - (this.width / 2),
+            this.y - (this.height / 2),
+            this.width,
+            this.height
         );
     }
     _drawCircle() {
         StdEntity.ctx.beginPath();
         
         // width is used for radius arbitrarilly (spelling?)
-        StdEntity.ctx.arc(this.x, this.y, this.size.width / 2, 0, Math.PI * 2);
+        StdEntity.ctx.arc(this.x, this.y, this.width / 2, 0, Math.PI * 2);
         
         // draw
         StdEntity.ctx.fillStyle = this.color;
@@ -214,9 +215,9 @@ export class StdEntity {
         // triangle points
         let angle = -Math.atan2(this.direction.y, this.direction.x);
         const p = [ // height being divided is the offset
-            this._rotatePoint(this.size.height / 2, 0, angle),
-            this._rotatePoint(-this.size.height / 2, this.size.width / 2, angle),
-            this._rotatePoint(-this.size.height / 2, -(this.size.width / 2), angle)
+            this._rotatePoint(this.height / 2, 0, angle),
+            this._rotatePoint(-this.height / 2, this.width / 2, angle),
+            this._rotatePoint(-this.height / 2, -(this.width / 2), angle)
         ];
 
         // draw points
@@ -253,7 +254,7 @@ export class StdEntity {
     }
     _drawDebugArrow() {
         // lot of calculations to make everything dynamic
-        let extension = this.size.height * 0.25;
+        let extension = this.height * 0.25;
         let newX = (this.direction.x / this.dirMagnitude) * this.speed.current;
         let newY = (this.direction.y / this.dirMagnitude) * this.speed.current;
         StdEntity.ctx.beginPath();
@@ -270,9 +271,9 @@ export class StdEntity {
         // arrow tip (taken from this._drawArrow())
         let angle = -Math.atan2(this.direction.y, this.direction.x);
         const p = [ // height being divided is the offset
-            this._rotatePoint(this.size.height / 4, 0, angle),
-            this._rotatePoint(-this.size.height / 4, this.size.width / 4, angle),
-            this._rotatePoint(-this.size.height / 4, -(this.size.width / 4), angle)
+            this._rotatePoint(this.height / 4, 0, angle),
+            this._rotatePoint(-this.height / 4, this.width / 4, angle),
+            this._rotatePoint(-this.height / 4, -(this.width / 4), angle)
         ];
         StdEntity.ctx.beginPath();
         StdEntity.ctx.moveTo(p[0][0] + (this.x + (newX * extension)), p[0][1] + (this.y - (newY * extension)));
@@ -292,12 +293,31 @@ export class StdEntity {
             this.y -= (this.direction.y / this.dirMagnitude) * this.speed.current;
         }
     }
-    _resolveCollision(a) {
-        if (a === 'x') {
-            let halfWidth = (this.size.width / 2);
+    _resolveCollision(cX, cY) {
+        let angle = Math.atan2((cY - this.y), (cX - this.x)) * (180 / Math.PI); // easier to use degrees
+        angle = (angle < 0) ? angle + 360 : angle; // weird thing with atan2
+        console.log('---')
+        console.log(angle)
+        console.log('---')
+
+        if ((angle > 45 && angle < 135) || (angle > 225 && angle < 315)) { // top & bottom
+            this.direction.y = -this.direction.y;
+        }
+        if ((angle > 135 && angle < 225) || (angle > 315 || angle < 45)) { // left & right
+            this.direction.x = -this.direction.x;
+        }
+    }
+    _collisionDetection() {
+        // outer bounds collision
+        // todo - see if it should only check when it's near the edge
+        if (
+                this.x - (this.width / 2) < StdEntity.drawSpace.x ||
+                this.x + (this.width / 2) > StdEntity.drawSpace.width
+            ) {
             // move entity back within drawSpace
+            let halfWidth = (this.width / 2);
             if (this.x - halfWidth < StdEntity.drawSpace.x) {
-                this.x = StdEntity.drawSpace.x + halfWidth; // + this.size.width;
+                this.x = StdEntity.drawSpace.x + halfWidth; // + this.width;
             } else {
                 this.x = StdEntity.drawSpace.width - halfWidth;
             }
@@ -306,11 +326,14 @@ export class StdEntity {
                 this.direction.x = -this.direction.x;
             }
         }
-        if (a === 'y') {
-            let halfHeight = (this.size.height / 2);
+        if (
+                this.y - (this.height / 2) < StdEntity.drawSpace.y ||
+                this.y + (this.height / 2) > StdEntity.drawSpace.height
+            ) {
+            let halfHeight = (this.height / 2);
             // move entity back within drawSpace
             if (this.y - halfHeight < StdEntity.drawSpace.y) {
-                this.y = StdEntity.drawSpace.y + halfHeight; // + this.size.height;
+                this.y = StdEntity.drawSpace.y + halfHeight; // + this.height;
             } else {
                 this.y = StdEntity.drawSpace.height - halfHeight;
             }
@@ -319,24 +342,8 @@ export class StdEntity {
                 this.direction.y = -this.direction.y;
             }
         }
-    }
-    _collisionDetection() {
-        // outer bounds collision
-        // todo - see if it should only check when it's near the edge
-        if (
-                this.x - (this.size.width / 2) < StdEntity.drawSpace.x ||
-                this.x + (this.size.width / 2) > StdEntity.drawSpace.width
-            ) {
-                this._resolveCollision('x');
-        }
-        if (
-                this.y - (this.size.height / 2) < StdEntity.drawSpace.y ||
-                this.y + (this.size.height / 2) > StdEntity.drawSpace.height
-            ) {
-                this._resolveCollision('y');
-        }
 
-        // 'sweep and prune' broad phase algorithm
+        // 'sweep and prune' algorithm - broad phase
         let possibleCollisions = [];
         for (let i = 0; i < StdEntity.entities.length; i++) {
             // skip itself
@@ -346,17 +353,18 @@ export class StdEntity {
 
             // check if any item's min x value is equal or less than the current items max x value
             // invert min and max to prune further
+            let hWidth = StdEntity.entities[i].width / 2;
             if (
-                (StdEntity.entities[i].x - (StdEntity.entities[i].width / 2)) <= (this.x + (this.size.width / 2)) &&
-                (StdEntity.entities[i].x + (StdEntity.entities[i].width / 2)) >= (this.x - (this.size.width / 2))
+                (StdEntity.entities[i].x - hWidth) <= (this.x + hWidth) &&
+                (StdEntity.entities[i].x + hWidth) >= (this.x - hWidth)
             ) {
                 possibleCollisions.push(i);
             }
         }
 
-        // narrow phase
+        // ?? - narrow phase
         let mainPoints = this.collisionPoints;
-        mainPoints.forEach(point => {
+        mainPoints.forEach((point, id) => {
             possibleCollisions.forEach(entityId => {
                 let hWidth = StdEntity.entities[entityId].width / 2;
                 let hHeight = StdEntity.entities[entityId].height / 2;
@@ -370,7 +378,8 @@ export class StdEntity {
                         (point.y < StdEntity.entities[entityId].y + hHeight)
                     )
                 ) {
-                    console.log('collision');
+                    this._resolveCollision(StdEntity.entities[entityId].x, StdEntity.entities[entityId].y);
+                    StdEntity.entities[entityId]._resolveCollision(point.x, point.y);
                 }
             });
         });
@@ -498,19 +507,13 @@ export class StdEntity {
             this.entities[i]._update();
         }
     }
-    get width() {return this.size.width;}
-    get height() {return this.size.height}
-    set width(width) {this.size.width = width;}
-    set height(height) {this.size.height = height;}
-    get dirMagnitude() {
-        return Math.sqrt(this.direction.x**2 + this.direction.y**2);
-    }
     /**
      * Get collision points in a 2D object array
      * Order: [top left, top right, bottom left, bottom right]
      * @returns {Array}
      */
     get collisionPoints() {
+        // todo - add support for hitboxes other than squares
         let hWidth = this.width / 2;
         let hHeight = this.height / 2;
         return [
@@ -520,4 +523,9 @@ export class StdEntity {
             {x: this.x + hWidth, y: this.y - hHeight}  // bottom right
         ];
     }
+    get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
+    get width() {return this.size.width;}
+    get height() {return this.size.height}
+    set width(width) {this.size.width = width;}
+    set height(height) {this.size.height = height;}
 }
