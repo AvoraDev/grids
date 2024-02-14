@@ -71,6 +71,8 @@ export class StdEntity {
         this.debug = false;
         this.collisionConfig = {
             invincible: false,
+            iFrameStart: undefined,
+            iFrameDur: 1000 / 8, // in ms
             rebound: false
         }
         this._inputConfig = {
@@ -283,6 +285,17 @@ export class StdEntity {
         StdEntity.ctx.fillStyle = 'rgb(255, 255, 255)';
         StdEntity.ctx.fill();
     }
+    _drawHitBox() {
+        let points = this.collisionPoints;
+        StdEntity.ctx.moveTo(points[0].x, points[0].y);
+        StdEntity.ctx.lineTo(points[1].x, points[1].y);
+        StdEntity.ctx.lineTo(points[3].x, points[3].y);
+        StdEntity.ctx.lineTo(points[2].x, points[2].y);
+        StdEntity.ctx.closePath();
+
+        StdEntity.ctx.strokeStyle = 'rgb(255, 255, 255)';
+        StdEntity.ctx.stroke();
+    }
     _move() {
         // normalize vector by dividing component by magnitude
         // todo - prevent snapping when going opposite direction
@@ -293,31 +306,41 @@ export class StdEntity {
             this.y -= (this.direction.y / this.dirMagnitude) * this.speed.current;
         }
     }
-    _resolveCollision(cX, cY) {
-        let angle = Math.atan2((cY - this.y), (cX - this.x)) * (180 / Math.PI); // easier to use degrees
-        angle = (angle < 0) ? angle + 360 : angle; // weird thing with atan2
-        console.log('---')
-        console.log(angle)
-        console.log('---')
+    _resolveCollision(entityId) {
+        // calculations (pythagorean theorem haunts me in my sleep)
+        let disX = StdEntity.entities[entityId].x - this.x; // a
+        let disY = StdEntity.entities[entityId].y - this.y; // b
+        let disT = Math.sqrt(disX**2 + disY**2);            // c
 
-        if ((angle > 45 && angle < 135) || (angle > 225 && angle < 315)) { // top & bottom
-            this.direction.y = -this.direction.y;
-        }
-        if ((angle > 135 && angle < 225) || (angle > 315 || angle < 45)) { // left & right
-            this.direction.x = -this.direction.x;
-        }
+        // invert direction
+        this.direction.x = -(disX / disT); // cosine
+        this.direction.y = -(disY / disT); // sin
+
+        StdEntity.entities[entityId].direction.x = (disX / disT); // cosine
+        StdEntity.entities[entityId].direction.y = (disY / disT); // sin
+
+        // force away
+        // todo - look into implementing mass in a more realistic way
+        // if (this.mass > StdEntity.entities[entityId].mass) {
+        //     StdEntity.entities[entityId].x 
+        //     StdEntity.entities[entityId].y
+        // } else {
+        //     this.x
+        //     this.y
+        // }
+
     }
-    _collisionDetection() {
+    _drawSpaceCollisionDetection() {
         // outer bounds collision
         // todo - see if it should only check when it's near the edge
         if (
-                this.x - (this.width / 2) < StdEntity.drawSpace.x ||
-                this.x + (this.width / 2) > StdEntity.drawSpace.width
-            ) {
+            this.x - (this.width / 2) < StdEntity.drawSpace.x ||
+            this.x + (this.width / 2) > StdEntity.drawSpace.width
+        ) {
             // move entity back within drawSpace
             let halfWidth = (this.width / 2);
             if (this.x - halfWidth < StdEntity.drawSpace.x) {
-                this.x = StdEntity.drawSpace.x + halfWidth; // + this.width;
+                this.x = StdEntity.drawSpace.x + halfWidth;
             } else {
                 this.x = StdEntity.drawSpace.width - halfWidth;
             }
@@ -333,7 +356,7 @@ export class StdEntity {
             let halfHeight = (this.height / 2);
             // move entity back within drawSpace
             if (this.y - halfHeight < StdEntity.drawSpace.y) {
-                this.y = StdEntity.drawSpace.y + halfHeight; // + this.height;
+                this.y = StdEntity.drawSpace.y + halfHeight;
             } else {
                 this.y = StdEntity.drawSpace.height - halfHeight;
             }
@@ -342,7 +365,8 @@ export class StdEntity {
                 this.direction.y = -this.direction.y;
             }
         }
-
+    }
+    _collisionDetection() {
         // 'sweep and prune' algorithm - broad phase
         let possibleCollisions = [];
         for (let i = 0; i < StdEntity.entities.length; i++) {
@@ -378,8 +402,10 @@ export class StdEntity {
                         (point.y < StdEntity.entities[entityId].y + hHeight)
                     )
                 ) {
-                    this._resolveCollision(StdEntity.entities[entityId].x, StdEntity.entities[entityId].y);
-                    StdEntity.entities[entityId]._resolveCollision(point.x, point.y);
+                    this._resolveCollision(entityId);
+
+                    // i-frames
+                    // this.invincibility = true;
                 }
             });
         });
@@ -439,12 +465,22 @@ export class StdEntity {
         // debugging
         if (this.debug === true) {
             this._drawDebugArrow();
+            this._drawHitBox();
         }
     }
     _update() {
-        // this._draw();
         this._move();
-        if (this.collisionConfig.invincible === false) {this._collisionDetection();}
+        // if (this.invincibility === true) {
+        //     let time = new Date();
+        //     if (time.getMilliseconds() - this.collisionConfig.iFrameStart.getMilliseconds() > this.collisionConfig.iFrameDur) {
+        //         this.invincibility = false;
+        //         this._collisionDetection();
+        //     }
+        // } else {
+        //     this._collisionDetection();
+        // }
+        this._collisionDetection();
+        this._drawSpaceCollisionDetection();
         this._inputActionHandler();
     }
     /**
@@ -507,25 +543,42 @@ export class StdEntity {
             this.entities[i]._update();
         }
     }
+    // complicated
     /**
      * Get collision points in a 2D object array
      * Order: [top left, top right, bottom left, bottom right]
      * @returns {Array}
      */
     get collisionPoints() {
-        // todo - add support for hitboxes other than squares
+        // todo - add support for hitboxes other than rectangles
         let hWidth = this.width / 2;
         let hHeight = this.height / 2;
         return [
-            {x: this.x - hWidth, y: this.y + hHeight}, // top left
-            {x: this.x + hWidth, y: this.y + hHeight}, // top right
-            {x: this.x - hWidth, y: this.y - hHeight}, // bottom left
-            {x: this.x + hWidth, y: this.y - hHeight}  // bottom right
+            {x: this.x - hWidth, y: this.y + hHeight},  // top left
+            {x: this.x + hWidth, y: this.y + hHeight},  // top right
+            {x: this.x - hWidth, y: this.y - hHeight},  // bottom left
+            {x: this.x + hWidth, y: this.y - hHeight},  // bottom right
+            {x: this.x, y: this.y - hHeight},           // top mid
+            {x: this.x, y: this.y + hHeight},           // bottom mid
+            {x: this.x - hWidth, y: this.y},            // left mid
+            {x: this.x + hWidth, y: this.y},            // right mid
         ];
     }
     get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
+    
     get width() {return this.size.width;}
-    get height() {return this.size.height}
     set width(width) {this.size.width = width;}
+
+    get height() {return this.size.height;}
     set height(height) {this.size.height = height;}
+    
+    get invincibility() {return this.collisionConfig.invincible;}
+    set invincibility(bool) {
+        if (bool === true) {
+            this.collisionConfig.invincible = true;
+            this.collisionConfig.iFrameStart = new Date();
+        } else {
+            this.collisionConfig.invincible = false;
+        }
+    }
 }

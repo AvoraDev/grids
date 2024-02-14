@@ -53,7 +53,7 @@ const test = new StdEntity(
     allMass,
     {
         color: "rgb(255, 0, 0)",
-        shape: "triangle",
+        shape: "rectangle",
         size: 20,
         zDepth: 1
     },
@@ -69,6 +69,7 @@ const test = new StdEntity(
         }
     }
 );
+test.speed.turning = 1;
 test.initEventListeners();
 
 // test NPC setup
@@ -99,8 +100,8 @@ test.addKeybind("shoot", "Space", () => {
     let currentTime = new Date();
     if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
         test.NPCs.push(new NPC(
-            test.x,
-            test.y,
+            test.x + (test.direction.x * test.size.width),
+            test.y - (test.direction.y * test.size.height),
             allMass,
             {
                 color: "rgb(0, 255, 255)",
@@ -119,7 +120,7 @@ test.addKeybind("shoot", "Space", () => {
             }
         ))
         test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
-        console.log(StdEntity.entities);
+        // test.NPCs[test.NPCs.length - 1].invincibility = true;
         test.shootCooldown = new Date();
     }
 });
@@ -144,6 +145,7 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             angle: ${angle.toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
             magnitude: ${test.dirMagnitude.toFixed(2)}<br>
+            iF: ${test.invincibility}<br>
             <br>
             Flags:<br>
             up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
@@ -295,7 +297,9 @@ window.addEventListener("keypress", e => {
             break;
         
         case "KeyM":
-            test.debug = !test.debug;
+            for (let i = 0; i < StdEntity.entities.length; i++) {
+                StdEntity.entities[i].debug = !StdEntity.entities[i].debug;
+            }
             break;
         
         case "KeyN":
