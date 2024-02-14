@@ -313,6 +313,7 @@ export class StdEntity {
         let disT = Math.sqrt(disX**2 + disY**2);            // c
 
         // invert direction
+        // todo - implement i-frames to prevent double collisions
         this.direction.x = -(disX / disT); // cosine
         this.direction.y = -(disY / disT); // sin
 

@@ -1,3 +1,7 @@
+// ------------------------------------------------------------------------
+// SETUP
+// ------------------------------------------------------------------------
+
 // module imports
 import { Hoot } from "./Hoot.js";
 import { Griddy } from "./Griddy.js";
@@ -5,7 +9,7 @@ import { StdEntity } from "./StdEntity.js";
 import { NPC } from "./NPC.js";
 import { LPSH } from "./LPSH.js";
 
-// :D (from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system)
+// from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system
 switch(window.location.protocol) {
     case 'http:': // never thought about doing this, its cool
     case 'https:':
@@ -125,6 +129,10 @@ test.addKeybind("shoot", "Space", () => {
     }
 });
 
+// ------------------------------------------------------------------------
+// DEBUG
+// ------------------------------------------------------------------------
+
 // debugging mess
 let cellsDebugFlag = false;
 let txtDebugFlag = false;
@@ -145,9 +153,9 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             angle: ${angle.toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
             magnitude: ${test.dirMagnitude.toFixed(2)}<br>
-            iF: ${test.invincibility}<br>
+            iF: <span style="color:${test.invincibility ? tru : fal}">${test.invincibility}</span><br><br>
             <br>
-            Flags:<br>
+            Input Flags:<br>
             up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
             down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
             left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
@@ -189,16 +197,13 @@ function debugCells(flag = false) {
         Griddy.debug = false;
     }
 }
-function drawBorder() {
-    disp.ctx.fillStyle = "rgb(255, 255, 255)";
-    disp.ctx.fillRect(0, 0, Griddy.border.margin, disp.height);
-    disp.ctx.fillRect(disp.width - Griddy.border.margin, 0, Griddy.border.margin, disp.height);
-    disp.ctx.fillRect(0, 0, disp.width, Griddy.border.margin)
-    disp.ctx.fillRect(0, disp.height - Griddy.border.margin, disp.width, Griddy.border.margin);
-}
+
+// ------------------------------------------------------------------------
+// RUNTIME FUNCTIONS
+// ------------------------------------------------------------------------
 
 let anim;
-let calc; // todo - name
+let calc;
 function _initDraw(fps) {
     // clear previous interval
     clearInterval(anim);
@@ -208,15 +213,13 @@ function _initDraw(fps) {
     anim = setInterval(() => {
         // clean screen
         disp.clear();
-
-        // draw border
-        drawBorder();
         
         // debug
         debugCells(cellsDebugFlag);
 
         // draw grid
         Griddy.draw();
+        Griddy.fillMargin();
 
         // draw test entities
         StdEntity.drawAll();
@@ -250,16 +253,20 @@ function init(fps = 60, tps = 60) {
     _initCalc(tps);
 }
 
-// begin (lol)
-// ------------------------------------------------------------
-// ------------------------------------------------------------
+// *
+    // **
+        // ***
+            // ****
+                init(60, 60);
+            // ****
+        // ***
+    // **
+// *
 
-                        init(60, 60);
+// ------------------------------------------------------------------------
+// FPS/TPS CONTROL
+// ------------------------------------------------------------------------
 
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-
-// misc
 FPSH.confirm.onclick = () => {FPSH.clearSamples(); _initDraw(FPSH.input.value);};
 TPSH.confirm.onclick = () => {TPSH.clearSamples(); _initCalc(TPSH.input.value);};
 document.querySelector("#grid-rows-confirm").onclick = () => {
@@ -271,6 +278,10 @@ document.querySelector("#grid-columns-confirm").onclick = () => {
     Griddy.updateCells()
 };
 
+// ------------------------------------------------------------------------
+// HTML CONTROL + KEYBINDS
+// ------------------------------------------------------------------------
+
 function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
     let e = document.querySelector(elem);
     if (e.style.display === initialDisplayType || e.style.display === "") {
@@ -279,7 +290,6 @@ function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
         e.style.display = initialDisplayType;
     }
 }
-
 window.addEventListener("keypress", e => {
     // console.log(e.code);
     switch (e.code) {
