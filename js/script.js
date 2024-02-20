@@ -58,7 +58,7 @@ const test = new StdEntity(
     {
         color: "rgb(255, 0, 0)",
         shape: "rectangle",
-        size: 20,
+        width: 20,
         zDepth: 1
     },
     {
@@ -84,7 +84,7 @@ const colTest = new NPC(
     {
         color: "rgb(0, 255, 150)",
         shape: "circle",
-        size: 40,
+        width: 40,
         zDepth: -1
     },
     {
@@ -104,13 +104,13 @@ test.addKeybind("shoot", "Space", () => {
     let currentTime = new Date();
     if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
         test.NPCs.push(new NPC(
-            test.x + (test.direction.x * test.size.width),
-            test.y - (test.direction.y * test.size.height),
+            test.x + (test.direction.x * test.width),
+            test.y - (test.direction.y * test.height),
             allMass,
             {
                 color: "rgb(0, 255, 255)",
                 shape: "triangle",
-                size: test.size.width * 0.75
+                width: test.width * 0.75
             },
             {
                 direction: {
