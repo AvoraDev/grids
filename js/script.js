@@ -68,12 +68,12 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 4,
+            max: 7,
             acceleration: 4
         }
     }
 );
-test.speed.turning = 1;
+// test.speed.turning = 1;
 test.initEventListeners();
 
 // test NPC setup

@@ -66,7 +66,7 @@ export class StdEntity {
             current: (mvInfo.speed.current === undefined) ?
                 mvInfo.speed.min :
                 mvInfo.speed.current,
-            turning: 0.05,
+            turning: 0.12,
             acceleration: (mvInfo.speed.acceleration === undefined) ?
                 mvInfo.speed.max :
                 mvInfo.speed.acceleration,
