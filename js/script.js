@@ -95,7 +95,7 @@ const colTest = new NPC(
         }
     }
 )
-colTest.collisionConfig.rebound = true;
+colTest.collisionRebound = true;
 
 // bullets WIP
 test.NPCs = [];
@@ -123,7 +123,7 @@ test.addKeybind("shoot", "Space", () => {
                 }
             }
         ))
-        test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
+        test.NPCs[test.NPCs.length - 1].collisionRebound = true;
         // test.NPCs[test.NPCs.length - 1].invincibility = true;
         test.shootCooldown = new Date();
     }

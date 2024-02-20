@@ -32,6 +32,7 @@ export class StdEntity {
      *     - deceleration (default is acceleration)
      * @param {number} x
      * @param {number} y
+     * @param {number} mass
      * @param {object} appearance
      * @param {object} mvInfo
      * @returns {onject}
@@ -39,7 +40,7 @@ export class StdEntity {
 	constructor(x, y, mass, appearance, mvInfo) {
         this.x = x;
         this.y = y;
-        this.mass = mass;
+        this.mass = mass; // todo - implement
         this.color = appearance.color;
         this._width = appearance.width;
         this._halfWidth = this._width / 2;
@@ -73,12 +74,15 @@ export class StdEntity {
                 mvInfo.speed.acceleration * 0.25:
                 mvInfo.speed.decelearation
         };
-        this.debug = false;
-        this.collisionConfig = {
-            invincible: false,
-            iFrameStart: undefined,
-            iFrameDur: 1000 / 8, // in ms
-            rebound: false
+        this._iFrame = {
+            enabled: false,
+            start: undefined,
+            duration: 1000 / 8 // ms
+        };
+        this._rebound = {
+            enabled: false,
+            start: undefined,
+            duration: 1 // ms
         }
         this._inputConfig = {
             up: {
@@ -102,6 +106,7 @@ export class StdEntity {
                 flag: false
             }
         };
+        this.debug = false;
 
         // add to class's arrs
         StdEntity.entities.push(this);
@@ -310,58 +315,6 @@ export class StdEntity {
             this.y -= (this.direction.y / this.dirMagnitude) * this.speed.current;
         }
     }
-    _resolveCollision(entityId) {
-        // todo - look into implementing mass and velocity transfer
-        // distances
-        let disX = StdEntity._e[entityId].x - this.x;
-        let disY = StdEntity._e[entityId].y - this.y;
-
-        // angle from current entity to collided entity
-        let angle = Math.atan2(disY, disX) * (180 / Math.PI);
-        angle = (angle < 0) ? 360 + angle : angle;
-
-        // overlap between entities
-        let overlapX = (StdEntity._e[entityId]._halfWidth + this._halfWidth) - Math.abs(disX);
-        let overlapY = (StdEntity._e[entityId]._halfHeight + this._halfHeight) - Math.abs(disY);
-
-        // resolve overlap
-        /* Shift Direction Truth Table (Q - quadrant)
-        Note: angle is using conventional x and y axis while canvas inverts y
-        0 < a < 90      Q1  x-  y+
-        90 < a < 180    Q2  x+  y+
-        180 < a < 270   Q3  x+  y-
-        270 < a < 360   Q4  x-  y-
-        */
-        if (overlapX < (StdEntity._e[entityId]._halfWidth + this._halfWidth) * 0.3) {
-            // get halves and substeps
-            overlapX /= 2 + StdEntity.collisionSubsteps;
-
-            // add margin and shift direction
-            let finalX = (overlapX + 1) * Math.sign(disX);
-
-            // shift entities
-            this.x -= finalX;
-            StdEntity._e[entityId].x += finalX;
-        }
-        if (overlapY < (StdEntity._e[entityId]._halfHeight + this._halfHeight) * 0.3) {
-            // get halves and substeps
-            overlapY /= 2 + StdEntity.collisionSubsteps;
-            
-            // add margin and shift direction
-            let finalY = (overlapY + 1) * Math.sign(disY);
-
-            this.y -= finalY;
-            StdEntity._e[entityId].y += finalY;
-        }
-
-        // invert direction
-        // todo - its a bit janky, consider bouncing off like in _drawSpaceCollision()
-        if (this.collisionConfig.rebound === true) {
-            let disT = Math.sqrt(disX**2 + disY**2);
-            this.direction.x = -(disX / disT); // cosine
-            this.direction.y = -(disY / disT); // sin
-        }
-    }
     _drawSpaceCollisionDetection() {
         // outer bounds collision
         // todo - see if it should only check when it's near the edge
@@ -376,7 +329,7 @@ export class StdEntity {
                 this.x = StdEntity.drawSpace.width - this._halfWidth;
             }
             
-            if (this.collisionConfig.rebound === true) {
+            if (this._rebound.enabled === true) {
                 this.direction.x = -this.direction.x;
             }
         }
@@ -391,7 +344,7 @@ export class StdEntity {
                 this.y = StdEntity.drawSpace.height - this._halfHeight;
             }
 
-            if (this.collisionConfig.rebound === true) {
+            if (this._rebound.enabled === true) {
                 this.direction.y = -this.direction.y;
             }
         }
@@ -433,6 +386,71 @@ export class StdEntity {
                 }
             });
         });
+    }
+    _resolveCollision(entityId) {
+        // todo - look into implementing mass and velocity transfer
+        // distances
+        let disX = StdEntity._e[entityId].x - this.x;
+        let disY = StdEntity._e[entityId].y - this.y;
+
+        // overlap between entities
+        let overlapX = (StdEntity._e[entityId]._halfWidth + this._halfWidth) - Math.abs(disX);
+        let overlapY = (StdEntity._e[entityId]._halfHeight + this._halfHeight) - Math.abs(disY);
+
+        // resolve overlap
+        /* Shift Direction Truth Table (Q - quadrant)
+        Note: angle is using conventional x and y axis while canvas inverts y
+        0 < a < 90      Q1  x-  y+
+        90 < a < 180    Q2  x+  y+
+        180 < a < 270   Q3  x+  y-
+        270 < a < 360   Q4  x-  y-
+        */
+        if (overlapX < (StdEntity._e[entityId]._halfWidth + this._halfWidth) * 0.3) {
+            // get halves and substeps
+            overlapX /= 2 + StdEntity.collisionSubsteps;
+
+            // add margin and shift direction
+            let finalX = (overlapX + 1) * Math.sign(disX);
+
+            // shift entities
+            this.x -= finalX;
+            StdEntity._e[entityId].x += finalX;
+        }
+        if (overlapY < (StdEntity._e[entityId]._halfHeight + this._halfHeight) * 0.3) {
+            // get halves and substeps
+            overlapY /= 2 + StdEntity.collisionSubsteps;
+            
+            // add margin and shift direction
+            let finalY = (overlapY + 1) * Math.sign(disY);
+
+            this.y -= finalY;
+            StdEntity._e[entityId].y += finalY;
+        }
+
+        // invert direction
+        if (this._rebound.enabled === true) {
+            // note: not sure if I like this approach
+            // get times
+            let currentTime = new Date();
+            if (this._rebound.start === undefined) {
+                this._rebound.start = new Date();
+                this._rebound.start.setTime(1); // big number
+            }
+            
+            // check if cooldown is done
+            if (currentTime.getTime() - this._rebound.start.getTime() < this._rebound.duration) {
+                return;
+            }
+
+            // do it
+            if (Math.abs(disX) > Math.abs(disY)) {
+                this.direction.x = -this.direction.x;
+            } else {
+                this.direction.y = -this.direction.y;
+            }
+
+            this._rebound.start = new Date();
+        }
     }
     _inputHandler(e, eventType) {
         Object.keys(this._inputConfig).forEach(key => {
@@ -494,13 +512,10 @@ export class StdEntity {
     }
     _update() {
         this._move();
-        if (this.invincibility === true) {
+        if (this._iFrame.enabled === true) {
             let currentTime = new Date();
-            let dur = currentTime.getTime() - this.collisionConfig.iFrameStart.getTime();
-            // console.log(this.id + ' | ' + temp + 'ms')
-
-            if (dur >= this.collisionConfig.iFrameDur) {
-                this.invincibility = false;
+            if (currentTime.getTime() - this._iFrame.duration.getTime() >= this._iFrame.duration) {
+                this._iFrame.enabled = false;
                 this._collisionDetection();
             }
         } else {
@@ -547,7 +562,7 @@ export class StdEntity {
      * @param {number} y
      * @param {number} width
      * @param {number} height
-     * @param {number} margin=0
+     * @param {number} margin default = 0
      * @returns {void}
      */
     static resizeDrawSpace(x, y, width, height, margin = 0) {
@@ -594,15 +609,18 @@ export class StdEntity {
         ];
     }
     
-    get invincibility() {return this.collisionConfig.invincible;}
-    set invincibility(bool) {
+    get invincible() {return this._iFrame.enabled;}
+    set invincible(bool) {
         if (bool === true) {
-            this.collisionConfig.invincible = true;
-            this.collisionConfig.iFrameStart = new Date();
+            this._iFrame.enabled = true;
+            this._iFrame.start = new Date();
         } else {
-            this.collisionConfig.invincible = false;
+            this._iFrame.enabled = false;
         }
     }
+
+    get collisionRebound() {return this._rebound.enabled;}
+    set collisionRebound(bool) {this._rebound.enabled = bool;}
 
     // other getters/setters
     get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
