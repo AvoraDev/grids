@@ -153,14 +153,14 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             angle: ${angle.toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
             magnitude: ${test.dirMagnitude.toFixed(2)}<br>
-            iF: <span style="color:${test.invincibility ? tru : fal}">${test.invincibility}</span><br><br>
             <br>
-            Input Flags:<br>
-            up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
-            down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
-            left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
-            right: <span style="color:${test._inputConfig.right.flag ? tru : fal}">${test._inputConfig.right.flag}</span><br>
-            shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
+            Flags:<br>
+            - up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
+            - down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
+            - left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
+            - right: <span style="color:${test._inputConfig.right.flag ? tru : fal}">${test._inputConfig.right.flag}</span><br>
+            - iF: <span style="color:${test.invincibility ? tru : fal}">${test.invincibility}</span><br>
+            - shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
             <br>
             NPCs: ${test.NPCs.length}<br>
             Cells: ${Griddy.cells.length}

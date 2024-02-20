@@ -313,16 +313,16 @@ export class StdEntity {
     _resolveCollision(entityId) {
         // todo - look into implementing mass and velocity transfer
         // distances
-        let disX = StdEntity.entities[entityId].x - this.x;
-        let disY = StdEntity.entities[entityId].y - this.y;
+        let disX = StdEntity._e[entityId].x - this.x;
+        let disY = StdEntity._e[entityId].y - this.y;
 
         // angle from current entity to collided entity
         let angle = Math.atan2(disY, disX) * (180 / Math.PI);
         angle = (angle < 0) ? 360 + angle : angle;
 
         // overlap between entities
-        let overlapX = (StdEntity.entities[entityId]._halfWidth + this._halfWidth) - Math.abs(disX);
-        let overlapY = (StdEntity.entities[entityId]._halfHeight + this._halfHeight) - Math.abs(disY);
+        let overlapX = (StdEntity._e[entityId]._halfWidth + this._halfWidth) - Math.abs(disX);
+        let overlapY = (StdEntity._e[entityId]._halfHeight + this._halfHeight) - Math.abs(disY);
 
         // resolve overlap
         /* Shift Direction Truth Table (Q - quadrant)
@@ -332,7 +332,7 @@ export class StdEntity {
         180 < a < 270   Q3  x+  y-
         270 < a < 360   Q4  x-  y-
         */
-        if (overlapX < (StdEntity.entities[entityId]._halfWidth + this._halfWidth) * 0.3) {
+        if (overlapX < (StdEntity._e[entityId]._halfWidth + this._halfWidth) * 0.3) {
             // get halves and substeps
             overlapX /= 2 + StdEntity.collisionSubsteps;
 
@@ -341,9 +341,9 @@ export class StdEntity {
 
             // shift entities
             this.x -= finalX;
-            StdEntity.entities[entityId].x += finalX;
+            StdEntity._e[entityId].x += finalX;
         }
-        if (overlapY < (StdEntity.entities[entityId]._halfHeight + this._halfHeight) * 0.3) {
+        if (overlapY < (StdEntity._e[entityId]._halfHeight + this._halfHeight) * 0.3) {
             // get halves and substeps
             overlapY /= 2 + StdEntity.collisionSubsteps;
             
@@ -351,7 +351,7 @@ export class StdEntity {
             let finalY = (overlapY + 1) * Math.sign(disY);
 
             this.y -= finalY;
-            StdEntity.entities[entityId].y += finalY;
+            StdEntity._e[entityId].y += finalY;
         }
 
         // invert direction
@@ -408,8 +408,8 @@ export class StdEntity {
             // check if any item's min x value is equal or less than the current items max x value
             // invert min and max to prune further
             if (
-                (StdEntity.entities[i].x - StdEntity.entities[i]._halfWidth) <= (this.x + StdEntity.entities[i]._halfWidth) &&
-                (StdEntity.entities[i].x + StdEntity.entities[i]._halfWidth) >= (this.x - StdEntity.entities[i]._halfWidth)
+                (StdEntity._e[i].x - StdEntity._e[i]._halfWidth) <= (this.x + StdEntity._e[i]._halfWidth) &&
+                (StdEntity._e[i].x + StdEntity._e[i]._halfWidth) >= (this.x - StdEntity._e[i]._halfWidth)
             ) {
                 possibleCollisions.push(i);
             }
@@ -421,12 +421,12 @@ export class StdEntity {
             possibleCollisions.forEach(entityId => {
                 if (
                     (
-                        (point.x > StdEntity.entities[entityId].x - StdEntity.entities[entityId]._halfWidth) &&
-                        (point.x < StdEntity.entities[entityId].x + StdEntity.entities[entityId]._halfWidth)
+                        (point.x > StdEntity._e[entityId].x - StdEntity._e[entityId]._halfWidth) &&
+                        (point.x < StdEntity._e[entityId].x + StdEntity._e[entityId]._halfWidth)
                     ) &&
                     (
-                        (point.y > StdEntity.entities[entityId].y - StdEntity.entities[entityId]._halfHeight) &&
-                        (point.y < StdEntity.entities[entityId].y + StdEntity.entities[entityId]._halfHeight)
+                        (point.y > StdEntity._e[entityId].y - StdEntity._e[entityId]._halfHeight) &&
+                        (point.y < StdEntity._e[entityId].y + StdEntity._e[entityId]._halfHeight)
                     )
                 ) {
                     this._resolveCollision(entityId);
@@ -569,7 +569,12 @@ export class StdEntity {
             this.entities[i]._update();
         }
     }
-    // complicated
+    // StdEntities.entities shorthand (get annoying to write)
+    static get _e() {
+        return this.entities;
+    }
+
+    // collision getters
     /**
      * Get collision points in a 2D object array
      * Order: [top left, top right, bottom left, bottom right]
@@ -578,28 +583,15 @@ export class StdEntity {
     get collisionPoints() {
         // todo - add support for hitboxes other than rectangles
         return [
-            {x: this.x - this._halfWidth, y: this.y + this._halfHeight},  // top left
-            {x: this.x + this._halfWidth, y: this.y + this._halfHeight},  // top right
-            {x: this.x - this._halfWidth, y: this.y - this._halfHeight},  // bottom left
-            {x: this.x + this._halfWidth, y: this.y - this._halfHeight},  // bottom right
-            {x: this.x, y: this.y - this._halfHeight},                   // top mid
-            {x: this.x, y: this.y + this._halfHeight},                   // bottom mid
-            {x: this.x - this._halfWidth, y: this.y},                    // left mid
-            {x: this.x + this._halfWidth, y: this.y},                    // right mid
+            {x: this.x - this._halfWidth, y: this.y + this._halfHeight},    // top left
+            {x: this.x + this._halfWidth, y: this.y + this._halfHeight},    // top right
+            {x: this.x - this._halfWidth, y: this.y - this._halfHeight},    // bottom left
+            {x: this.x + this._halfWidth, y: this.y - this._halfHeight},    // bottom right
+            {x: this.x, y: this.y - this._halfHeight},                      // top mid
+            {x: this.x, y: this.y + this._halfHeight},                      // bottom mid
+            {x: this.x - this._halfWidth, y: this.y},                       // left mid
+            {x: this.x + this._halfWidth, y: this.y},                       // right mid
         ];
-    }
-    get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
-    
-    get width() {return this._width;}
-    set width(w) {
-        this._width = w;
-        this._halfWidth = w / 2;
-    }
-
-    get height() {return this._height;}
-    set height(h) {
-        this._height = h;
-        this._halfHeight = h / 2;
     }
     
     get invincibility() {return this.collisionConfig.invincible;}
@@ -610,5 +602,20 @@ export class StdEntity {
         } else {
             this.collisionConfig.invincible = false;
         }
+    }
+
+    // other getters/setters
+    get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
+
+    get width() {return this._width;}
+    set width(w) {
+        this._width = w;
+        this._halfWidth = w / 2;
+    }
+
+    get height() {return this._height;}
+    set height(h) {
+        this._height = h;
+        this._halfHeight = h / 2;
     }
 }
