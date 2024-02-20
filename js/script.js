@@ -68,7 +68,7 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 8,
+            max: 4,
             acceleration: 4
         }
     }
@@ -90,7 +90,7 @@ const colTest = new NPC(
     {
         direction: -45,
         speed: {
-            min: 5,
+            min: 0,
             max: 5
         }
     }

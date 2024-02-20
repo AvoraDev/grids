@@ -2,9 +2,14 @@ export class StdEntity {
     // canvas context
     static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
+
     // all entities
     static entities = [];
     static depths = {};
+
+    // calculation vars
+    static collisionSubsteps = 5;
+
     /**
      * Create an instance of StdEntity.
      * 
@@ -298,7 +303,6 @@ export class StdEntity {
     }
     _move() {
         // normalize vector by dividing component by magnitude
-        // todo - prevent snapping when going opposite direction
         if (this.direction.x === 0 && this.direction.y === 0) {
             return;
         } else {
@@ -308,28 +312,42 @@ export class StdEntity {
     }
     _resolveCollision(entityId) {
         // calculations (pythagorean theorem haunts me in my sleep)
-        let disX = StdEntity.entities[entityId].x - this.x; // a
-        let disY = StdEntity.entities[entityId].y - this.y; // b
-        let disT = Math.sqrt(disX**2 + disY**2);            // c
+        let disX = StdEntity.entities[entityId].x - this.x;
+        let disY = StdEntity.entities[entityId].y - this.y;
+
+        // angle from current entity to collided entity
+        let angle = Math.atan2(disY, disX) * (180 / Math.PI);
+        angle = (angle < 0) ? 360 + angle : angle;
+
+        // todo - look into implementing mass and velocity transfer
+        let overlapX = ((StdEntity.entities[entityId].size.width / 2) + (this.size.width / 2)) - Math.abs(disX);
+        let overlapY = ((StdEntity.entities[entityId].size.height / 2) + (this.size.height / 2)) - Math.abs(disY);
+
+        // get halves and substeps
+        overlapX /= 2 + StdEntity.collisionSubsteps;
+        overlapY /= 2 + StdEntity.collisionSubsteps;
+
+        // resolve overlap
+        /* Truth Table (Q - quadrant)
+        Note: angle is using conventional x and y axis while canvas inverts y
+        0 < a < 90      Q1  x-  y+
+        90 < a < 180    Q2  x+  y+
+        180 < a < 270   Q3  x+  y-
+        270 < a < 360   Q4  x-  y-
+        */
+        this.x -= overlapX * Math.sign(disX);
+        this.y -= overlapY * Math.sign(disY);
+        StdEntity.entities[entityId].x += overlapX * Math.sign(disX);
+        StdEntity.entities[entityId].y += overlapY * Math.sign(disY);
 
         // invert direction
-        // todo - implement i-frames to prevent double collisions
-        this.direction.x = -(disX / disT); // cosine
-        this.direction.y = -(disY / disT); // sin
-
-        StdEntity.entities[entityId].direction.x = (disX / disT); // cosine
-        StdEntity.entities[entityId].direction.y = (disY / disT); // sin
-
-        // force away
-        // todo - look into implementing mass in a more realistic way
-        // if (this.mass > StdEntity.entities[entityId].mass) {
-        //     StdEntity.entities[entityId].x 
-        //     StdEntity.entities[entityId].y
-        // } else {
-        //     this.x
-        //     this.y
-        // }
-
+        // todo - its a bit janky
+        // consider bouncing off like in _drawSpaceCollision()
+        if (this.collisionConfig.rebound === true) {
+            let disT = Math.sqrt(disX**2 + disY**2);
+            this.direction.x = -(disX / disT); // cosine
+            this.direction.y = -(disY / disT); // sin
+        }
     }
     _drawSpaceCollisionDetection() {
         // outer bounds collision
@@ -389,7 +407,7 @@ export class StdEntity {
 
         // ?? - narrow phase
         let mainPoints = this.collisionPoints;
-        mainPoints.forEach((point, id) => {
+        mainPoints.forEach(point => {
             possibleCollisions.forEach(entityId => {
                 let hWidth = StdEntity.entities[entityId].width / 2;
                 let hHeight = StdEntity.entities[entityId].height / 2;
@@ -404,9 +422,6 @@ export class StdEntity {
                     )
                 ) {
                     this._resolveCollision(entityId);
-
-                    // i-frames
-                    // this.invincibility = true;
                 }
             });
         });
@@ -471,16 +486,18 @@ export class StdEntity {
     }
     _update() {
         this._move();
-        // if (this.invincibility === true) {
-        //     let time = new Date();
-        //     if (time.getMilliseconds() - this.collisionConfig.iFrameStart.getMilliseconds() > this.collisionConfig.iFrameDur) {
-        //         this.invincibility = false;
-        //         this._collisionDetection();
-        //     }
-        // } else {
-        //     this._collisionDetection();
-        // }
-        this._collisionDetection();
+        if (this.invincibility === true) {
+            let currentTime = new Date();
+            let dur = currentTime.getTime() - this.collisionConfig.iFrameStart.getTime();
+            // console.log(this.id + ' | ' + temp + 'ms')
+
+            if (dur >= this.collisionConfig.iFrameDur) {
+                this.invincibility = false;
+                this._collisionDetection();
+            }
+        } else {
+            this._collisionDetection();
+        }
         this._drawSpaceCollisionDetection();
         this._inputActionHandler();
     }
