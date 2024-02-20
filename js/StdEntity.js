@@ -311,7 +311,8 @@ export class StdEntity {
         }
     }
     _resolveCollision(entityId) {
-        // calculations (pythagorean theorem haunts me in my sleep)
+        // todo - look into implementing mass and velocity transfer
+        // distances
         let disX = StdEntity.entities[entityId].x - this.x;
         let disY = StdEntity.entities[entityId].y - this.y;
 
@@ -319,30 +320,42 @@ export class StdEntity {
         let angle = Math.atan2(disY, disX) * (180 / Math.PI);
         angle = (angle < 0) ? 360 + angle : angle;
 
-        // todo - look into implementing mass and velocity transfer
+        // overlap between entities
         let overlapX = ((StdEntity.entities[entityId].size.width / 2) + (this.size.width / 2)) - Math.abs(disX);
         let overlapY = ((StdEntity.entities[entityId].size.height / 2) + (this.size.height / 2)) - Math.abs(disY);
 
-        // get halves and substeps
-        overlapX /= 2 + StdEntity.collisionSubsteps;
-        overlapY /= 2 + StdEntity.collisionSubsteps;
-
         // resolve overlap
-        /* Truth Table (Q - quadrant)
+        /* Shift Direction Truth Table (Q - quadrant)
         Note: angle is using conventional x and y axis while canvas inverts y
         0 < a < 90      Q1  x-  y+
         90 < a < 180    Q2  x+  y+
         180 < a < 270   Q3  x+  y-
         270 < a < 360   Q4  x-  y-
         */
-        this.x -= overlapX * Math.sign(disX);
-        this.y -= overlapY * Math.sign(disY);
-        StdEntity.entities[entityId].x += overlapX * Math.sign(disX);
-        StdEntity.entities[entityId].y += overlapY * Math.sign(disY);
+        if (overlapX < ((StdEntity.entities[entityId].size.width / 2) + (this.size.width / 2)) * 0.3) {
+            // get halves and substeps
+            overlapX /= 2 + StdEntity.collisionSubsteps;
+
+            // add margin and shift direction
+            let finalX = (overlapX + 1) * Math.sign(disX);
+
+            // shift entities
+            this.x -= finalX;
+            StdEntity.entities[entityId].x += finalX;
+        }
+        if (overlapY < ((StdEntity.entities[entityId].size.height / 2) + (this.size.height / 2)) * 0.3) {
+            // get halves and substeps
+            overlapY /= 2 + StdEntity.collisionSubsteps;
+            
+            // add margin and shift direction
+            let finalY = (overlapY + 1) * Math.sign(disY);
+
+            this.y -= finalY;
+            StdEntity.entities[entityId].y += finalY;
+        }
 
         // invert direction
-        // todo - its a bit janky
-        // consider bouncing off like in _drawSpaceCollision()
+        // todo - its a bit janky, consider bouncing off like in _drawSpaceCollision()
         if (this.collisionConfig.rebound === true) {
             let disT = Math.sqrt(disX**2 + disY**2);
             this.direction.x = -(disX / disT); // cosine
@@ -369,9 +382,9 @@ export class StdEntity {
             }
         }
         if (
-                this.y - (this.height / 2) < StdEntity.drawSpace.y ||
-                this.y + (this.height / 2) > StdEntity.drawSpace.height
-            ) {
+            this.y - (this.height / 2) < StdEntity.drawSpace.y ||
+            this.y + (this.height / 2) > StdEntity.drawSpace.height
+        ) {
             let halfHeight = (this.height / 2);
             // move entity back within drawSpace
             if (this.y - halfHeight < StdEntity.drawSpace.y) {
