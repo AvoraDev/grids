@@ -94,5 +94,32 @@ export const Griddy = {
         } else {
             return [col + (row * this.columns), col, row];
         }
+    },
+    fillMargin(color = this.border.color) {
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(
+            0,
+            0,
+            this.border.margin,
+            this.canvas.height
+        );
+        this.ctx.fillRect(
+            this.canvas.width - this.border.margin,
+            0,
+            this.border.margin,
+            this.canvas.height
+        );
+        this.ctx.fillRect(
+            0,
+            0,
+            this.canvas.width,
+            this.border.margin
+        );
+        this.ctx.fillRect(
+            0,
+            this.canvas.height - this.border.margin,
+            this.canvas.width,
+            this.border.margin
+        );
     }
 };

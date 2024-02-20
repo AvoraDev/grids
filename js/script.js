@@ -1,6 +1,6 @@
-// !!! IMPORTANT NOTE !!!
-// you need to decide if you want to keep adding functions for resizing
-// its getting annoying
+// ------------------------------------------------------------------------
+// SETUP
+// ------------------------------------------------------------------------
 
 // module imports
 import { Hoot } from "./Hoot.js";
@@ -8,6 +8,19 @@ import { Griddy } from "./Griddy.js";
 import { StdEntity } from "./StdEntity.js";
 import { NPC } from "./NPC.js";
 import { LPSH } from "./LPSH.js";
+
+// from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system
+switch(window.location.protocol) {
+    case 'http:': // never thought about doing this, its cool
+    case 'https:':
+        document.title += ": remote";
+        break;
+    case 'file:':
+        document.title += ": local";
+        break;
+        default: 
+        document.title += ": ?";
+}
 
 // HTML elements
 const debug_text = document.querySelector("#debug-text");
@@ -37,13 +50,16 @@ window.addEventListener("resize", () => {
 });
 
 // test entity setup
+const allMass = 1;
 const test = new StdEntity(
 	disp.width / 2,
     disp.height / 2,
+    allMass,
     {
         color: "rgb(255, 0, 0)",
-        shape: "triangle",
-        size: 20
+        shape: "rectangle",
+        width: 20,
+        zDepth: 1
     },
     {
         direction: {
@@ -52,12 +68,34 @@ const test = new StdEntity(
         },
         speed: {
             min: 0,
-            max: 10,
-            acceleration: 5
+            max: 4,
+            acceleration: 4
         }
     }
 );
+test.speed.turning = 1;
 test.initEventListeners();
+
+// test NPC setup
+const colTest = new NPC(
+    (disp.width / 2) + 50,
+    disp.height / 2,
+    allMass,
+    {
+        color: "rgb(0, 255, 150)",
+        shape: "circle",
+        width: 40,
+        zDepth: -1
+    },
+    {
+        direction: -45,
+        speed: {
+            min: 0,
+            max: 5
+        }
+    }
+)
+colTest.collisionRebound = true;
 
 // bullets WIP
 test.NPCs = [];
@@ -66,12 +104,13 @@ test.addKeybind("shoot", "Space", () => {
     let currentTime = new Date();
     if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
         test.NPCs.push(new NPC(
-            test.x,
-            test.y,
+            test.x + (test.direction.x * test.width),
+            test.y - (test.direction.y * test.height),
+            allMass,
             {
                 color: "rgb(0, 255, 255)",
                 shape: "triangle",
-                size: test.size.width * 0.75
+                width: test.width * 0.75
             },
             {
                 direction: {
@@ -84,10 +123,15 @@ test.addKeybind("shoot", "Space", () => {
                 }
             }
         ))
-        test.NPCs[test.NPCs.length - 1].collisionConfig.rebound = true;
+        test.NPCs[test.NPCs.length - 1].collisionRebound = true;
+        // test.NPCs[test.NPCs.length - 1].invincibility = true;
         test.shootCooldown = new Date();
     }
 });
+
+// ------------------------------------------------------------------------
+// DEBUG
+// ------------------------------------------------------------------------
 
 // debugging mess
 let cellsDebugFlag = false;
@@ -96,6 +140,9 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
     if (flag === true) {
         // wish this didn't have to be hand written
         try {
+            let angle = Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)
+            angle = (angle < 0) ? 360 + angle : angle;
+
             debug_text.innerHTML = `
             FPS: ${FPSH.getLPS().toFixed(2)}<br>
             TPS: ${TPSH.getLPS().toFixed(2)}<br>
@@ -103,16 +150,17 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             y: ${test.y.toFixed(2)}<br>
             dX: ${test.direction.x.toFixed(2)}<br>
             dY: ${test.direction.y.toFixed(2)}<br>
-            angle: ${(Math.atan2(test.direction.y, test.direction.x) * (180 / Math.PI)).toFixed(2)}&deg;<br>
+            angle: ${angle.toFixed(2)}&deg;<br>
             speed: ${test.speed.current.toFixed(2)}<br>
-            magnitude: ${test.direction._magnitude().toFixed(2)}<br>
+            magnitude: ${test.dirMagnitude.toFixed(2)}<br>
             <br>
             Flags:<br>
-            up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
-            down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
-            left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
-            right: <span style="color:${test._inputConfig.right.flag ? tru : fal}">${test._inputConfig.right.flag}</span><br>
-            shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
+            - up: <span style="color:${test._inputConfig.up.flag ? tru : fal}">${test._inputConfig.up.flag}</span><br>
+            - down: <span style="color:${test._inputConfig.down.flag ? tru : fal}">${test._inputConfig.down.flag}</span><br>
+            - left: <span style="color:${test._inputConfig.left.flag ? tru : fal}">${test._inputConfig.left.flag}</span><br>
+            - right: <span style="color:${test._inputConfig.right.flag ? tru : fal}">${test._inputConfig.right.flag}</span><br>
+            - iF: <span style="color:${test.invincibility ? tru : fal}">${test.invincibility}</span><br>
+            - shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
             <br>
             NPCs: ${test.NPCs.length}<br>
             Cells: ${Griddy.cells.length}
@@ -150,9 +198,13 @@ function debugCells(flag = false) {
     }
 }
 
+// ------------------------------------------------------------------------
+// RUNTIME FUNCTIONS
+// ------------------------------------------------------------------------
+
 let anim;
-let calc; // todo - name
-function initDraw(fps) {
+let calc;
+function _initDraw(fps) {
     // clear previous interval
     clearInterval(anim);
 
@@ -161,27 +213,16 @@ function initDraw(fps) {
     anim = setInterval(() => {
         // clean screen
         disp.clear();
-
-        // draw border
-        disp.ctx.fillStyle = "rgb(255, 255, 255)";
-        disp.ctx.fillRect(0, 0, Griddy.border.margin, disp.height);
-        disp.ctx.fillRect(disp.width - Griddy.border.margin, 0, Griddy.border.margin, disp.height);
-        disp.ctx.fillRect(0, 0, disp.width, Griddy.border.margin)
-        disp.ctx.fillRect(0, disp.height - Griddy.border.margin, disp.width, Griddy.border.margin);
         
         // debug
         debugCells(cellsDebugFlag);
 
         // draw grid
         Griddy.draw();
+        Griddy.fillMargin();
 
-        // draw test entity
-        test.draw();
-
-        // npc jazz
-        for (let i = 0; i < test.NPCs.length; i++) {
-            test.NPCs[i].draw();
-        }
+        // draw test entities
+        StdEntity.drawAll();
 
         FPSH.log();
     }, 1000 / fps);
@@ -189,19 +230,14 @@ function initDraw(fps) {
     // log init
     console.log(`Init with ${fps} FPS set`);
 }
-function initCalc(tps) { // ticks per second
+function _initCalc(tps) { // ticks per second
     // clear previous interval
     clearInterval(calc);
 
     // start new one with given tps
     calc = setInterval(() => {
         // update stuff
-        test.update();
-        
-        // npc jazz
-        for (let i = 0; i < test.NPCs.length; i++) {
-            test.NPCs[i].update();
-        }
+        StdEntity.updateAll();
 
         // debugging
         debugTxt(txtDebugFlag, "rgb(0, 255, 255)", "rgb(255, 150, 100)")
@@ -213,25 +249,26 @@ function initCalc(tps) { // ticks per second
 }
 function init(fps = 60, tps = 60) {
     // begin jazz
-    initDraw(fps);
-    initCalc(tps);
-
-    // log init
-    // console.log(`Init with ${fps} FPS and ${tps} TPS set`);
+    _initDraw(fps);
+    _initCalc(tps);
 }
 
-// begin (lol)
-// ------------------------------------------------------------
-// ------------------------------------------------------------
+// *
+    // **
+        // ***
+            // ****
+                init(60, 60);
+            // ****
+        // ***
+    // **
+// *
 
-                        init(60, 60);
+// ------------------------------------------------------------------------
+// FPS/TPS CONTROL
+// ------------------------------------------------------------------------
 
-// ------------------------------------------------------------
-// ------------------------------------------------------------
-
-// misc
-FPSH.confirm.onclick = () => {FPSH.clearSamples(); initDraw(FPSH.input.value);};
-TPSH.confirm.onclick = () => {TPSH.clearSamples(); initCalc(TPSH.input.value);};
+FPSH.confirm.onclick = () => {FPSH.clearSamples(); _initDraw(FPSH.input.value);};
+TPSH.confirm.onclick = () => {TPSH.clearSamples(); _initCalc(TPSH.input.value);};
 document.querySelector("#grid-rows-confirm").onclick = () => {
     Griddy.rows = document.querySelector("#grid-rows-input").value;
     Griddy.updateCells();
@@ -241,6 +278,10 @@ document.querySelector("#grid-columns-confirm").onclick = () => {
     Griddy.updateCells()
 };
 
+// ------------------------------------------------------------------------
+// HTML CONTROL + KEYBINDS
+// ------------------------------------------------------------------------
+
 function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
     let e = document.querySelector(elem);
     if (e.style.display === initialDisplayType || e.style.display === "") {
@@ -249,7 +290,6 @@ function toggleHTMLDisplay(elem, initialDisplayType, secondaryDisplayType) {
         e.style.display = initialDisplayType;
     }
 }
-
 window.addEventListener("keypress", e => {
     // console.log(e.code);
     switch (e.code) {
@@ -267,7 +307,9 @@ window.addEventListener("keypress", e => {
             break;
         
         case "KeyM":
-            test.debug = !test.debug;
+            for (let i = 0; i < StdEntity.entities.length; i++) {
+                StdEntity.entities[i].debug = !StdEntity.entities[i].debug;
+            }
             break;
         
         case "KeyN":

@@ -2,14 +2,23 @@ export class StdEntity {
     // canvas context
     static drawSpace = {x: 0, y: 0, width: 0, height: 0};
     static ctx = {};
+
+    // all entities
+    static entities = [];
+    static depths = {};
+
+    // calculation vars
+    static collisionSubsteps = 5;
+
     /**
      * Create an instance of StdEntity.
      * 
      * appereance properties:
+     * - shape ('rectangle', 'triangle', 'circle')
      * - color
-     * - size (if one value is given for size, width and height will be set the same)
-     *     - width
-     *     - height
+     * - width (use for diameter if using 'circle' shape)
+     * - height (defaults to width)
+     * - zDepth
      * 
      * mvInfo properties:
      * - direction (A number value in degrees can be given to find each component automatically)
@@ -23,24 +32,28 @@ export class StdEntity {
      *     - deceleration (default is acceleration)
      * @param {number} x
      * @param {number} y
+     * @param {number} mass
      * @param {object} appearance
      * @param {object} mvInfo
      * @returns {onject}
      */
-	constructor(x, y, appearance, mvInfo) {
-  	    // unique properties
+	constructor(x, y, mass, appearance, mvInfo) {
         this.x = x;
-        this.y = y
+        this.y = y;
+        this.mass = mass; // todo - implement
         this.color = appearance.color;
-        this.size = (typeof(appearance.size) != 'object') ?
-            {
-                width: appearance.size,
-                height: appearance.size
-            } :
-            appearance.size;
+        this._width = appearance.width;
+        this._halfWidth = this._width / 2;
+        this._height = (appearance.height === undefined) ?
+            appearance.width :
+            appearance.height;
+        this._halfHeight = this._height / 2;
         this.shape = (appearance.shape === undefined) ?
             'rectangle' :
             appearance.shape;
+        this.zDepth = (appearance.zDepth === undefined) ?
+            0 :
+            appearance.zDepth;
         this.direction = (typeof(mvInfo.direction) === 'object') ?
             mvInfo.direction :
             {
@@ -61,66 +74,16 @@ export class StdEntity {
                 mvInfo.speed.acceleration * 0.25:
                 mvInfo.speed.decelearation
         };
-        // direction methods 
-        this.direction._magnitude = function() {return Math.sqrt(this.x**2 + this.y**2);}
-        /**
-         * tURN
-         * @param {any} axis - 'x', 'y'
-         * @param {any} targetDirection - 1, 0, -1
-         * @returns {void}
-         */
-        this.direction._turn = (axis, targetDirection, speedMultiplier = 1) => {
-            let sign = Math.sign(this.direction[axis]);
-            if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
-                if (this.direction[axis] + this.speed.turning * speedMultiplier > targetDirection) {
-                    this.direction[axis] = targetDirection;
-                } else {
-                    this.direction[axis] += this.speed.turning * speedMultiplier;
-                }
-            } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
-                if (this.direction[axis] - this.speed.turning * speedMultiplier < targetDirection) {
-                    this.direction[axis] = targetDirection;
-                } else {
-                    this.direction[axis] -= this.speed.turning * speedMultiplier;
-                }
-            }
+        this._iFrame = {
+            enabled: false,
+            start: undefined,
+            duration: 1000 / 8 // ms
         };
-        this.collisionConfig = {
-            rebound: false,
-            onCollision: {
-                x: () => {
-                    let halfWidth = (this.size.width / 2);
-                    // move entity back within drawSpace
-                    if (this.x - halfWidth < StdEntity.drawSpace.x) {
-                        this.x = StdEntity.drawSpace.x + halfWidth; // + this.size.width;
-                    } else {
-                        this.x = StdEntity.drawSpace.width - halfWidth;
-                    }
-
-                    // cause entity to rebound if it is enabled
-                    if (this.collisionConfig.rebound === true) {
-                        this.direction.x = -this.direction.x;
-                    }
-                },
-                y: () => {
-                    let halfHeight = (this.size.height / 2);
-                    // move entity back within drawSpace
-                    if (this.y - halfHeight < StdEntity.drawSpace.y) {
-                        this.y = StdEntity.drawSpace.y + halfHeight; // + this.size.height;
-                    } else {
-                        this.y = StdEntity.drawSpace.height - halfHeight;
-                    }
-                    
-                    // cause entity to rebound if it is enabled
-                    if (this.collisionConfig.rebound === true) {
-                        this.direction.y = -this.direction.y;
-                    }
-                }
-            }
+        this._rebound = {
+            enabled: false,
+            start: undefined,
+            duration: 1 // ms
         }
-
-        // internal properties
-        this.debug = false;
         this._inputConfig = {
             up: {
                 action: () => {this._defaultMovement('y', 1, ['left', 'right'])},
@@ -143,6 +106,21 @@ export class StdEntity {
                 flag: false
             }
         };
+        this.debug = false;
+
+        // add to class's arrs
+        StdEntity.entities.push(this);
+        this.id = StdEntity.entities.length - 1;
+
+        // zDepth pain
+        let dId = (this.zDepth < 0) ?
+            `n${this.zDepth}` :
+            `p${this.zDepth}`;
+
+        if (typeof(StdEntity.depths[dId]) === 'undefined') {
+            StdEntity.depths[dId] = [];
+        }
+        StdEntity.depths[dId].push(this.id);
     }
     _accelerate() {
         if (this.speed.current + this.speed.acceleration > this.speed.max) {
@@ -158,25 +136,47 @@ export class StdEntity {
             this.speed.current -= this.speed.decelearation;
         }
     }
+    /**
+     * tURN
+     * @param {any} axis - 'x', 'y'
+     * @param {any} targetDirection - 1, 0, -1
+     * @returns {void}
+     */
+    _turn = (axis, targetDirection, speedMultiplier = 1) => {
+        let sign = Math.sign(this.direction[axis]);
+        if (targetDirection > 0 || (targetDirection === 0 && sign < 0)) { // +
+            if (this.direction[axis] + this.speed.turning * speedMultiplier > targetDirection) {
+                this.direction[axis] = targetDirection;
+            } else {
+                this.direction[axis] += this.speed.turning * speedMultiplier;
+            }
+        } else if (targetDirection < 0 || (targetDirection === 0 && sign > 0)) { // -
+            if (this.direction[axis] - this.speed.turning * speedMultiplier < targetDirection) {
+                this.direction[axis] = targetDirection;
+            } else {
+                this.direction[axis] -= this.speed.turning * speedMultiplier;
+            }
+        }
+    };
     _defaultMovement = (axis, targetDirection, sideFlags, spinBuffer = 0.25) => {
         // turns
         if (targetDirection > 0) { // + 
             if (this.direction[axis] < 0 - spinBuffer) {
-                this.direction._turn(axis, targetDirection, 4);
+                this._turn(axis, targetDirection, 4);
             } else {
-                this.direction._turn(axis, targetDirection);
+                this._turn(axis, targetDirection);
             }
         } else { // -
             if (this.direction[axis] > 0 + spinBuffer) {
-                this.direction._turn(axis, targetDirection, 4);
+                this._turn(axis, targetDirection, 4);
             } else {
-                this.direction._turn(axis, targetDirection);
+                this._turn(axis, targetDirection);
             }
         }
         
         // opposite axis realignment (?)
         if (this._inputConfig[sideFlags[0]].flag === false && this._inputConfig[sideFlags[1]].flag === false) {
-            this.direction._turn((axis === 'x') ? 'y' : 'x', 0);
+            this._turn((axis === 'x') ? 'y' : 'x', 0);
         }
 
         // start shmoovin' (this should be further worked on)
@@ -207,17 +207,17 @@ export class StdEntity {
     _drawRectangle() {
         StdEntity.ctx.fillStyle = this.color;
         StdEntity.ctx.fillRect(
-            this.x - (this.size.width / 2),
-            this.y - (this.size.height / 2),
-            this.size.width,
-            this.size.height
+            this.x - this._halfWidth,
+            this.y - this._halfHeight,
+            this.width,
+            this.height
         );
     }
     _drawCircle() {
         StdEntity.ctx.beginPath();
         
         // width is used for radius arbitrarilly (spelling?)
-        StdEntity.ctx.arc(this.x, this.y, this.size.width / 2, 0, Math.PI * 2);
+        StdEntity.ctx.arc(this.x, this.y, this._halfWidth, 0, Math.PI * 2);
         
         // draw
         StdEntity.ctx.fillStyle = this.color;
@@ -227,9 +227,9 @@ export class StdEntity {
         // triangle points
         let angle = -Math.atan2(this.direction.y, this.direction.x);
         const p = [ // height being divided is the offset
-            this._rotatePoint(this.size.height / 2, 0, angle),
-            this._rotatePoint(-this.size.height / 2, this.size.width / 2, angle),
-            this._rotatePoint(-this.size.height / 2, -(this.size.width / 2), angle)
+            this._rotatePoint(this._halfHeight, 0, angle),
+            this._rotatePoint(-this._halfHeight, this._halfWidth, angle),
+            this._rotatePoint(-this._halfHeight, -this._halfWidth, angle)
         ];
 
         // draw points
@@ -266,9 +266,9 @@ export class StdEntity {
     }
     _drawDebugArrow() {
         // lot of calculations to make everything dynamic
-        let extension = this.size.height * 0.25;
-        let newX = (this.direction.x / this.direction._magnitude()) * this.speed.current;
-        let newY = (this.direction.y / this.direction._magnitude()) * this.speed.current;
+        let extension = this.height * 0.25;
+        let newX = (this.direction.x / this.dirMagnitude) * this.speed.current;
+        let newY = (this.direction.y / this.dirMagnitude) * this.speed.current;
         StdEntity.ctx.beginPath();
         
         // arrow shaft
@@ -283,9 +283,9 @@ export class StdEntity {
         // arrow tip (taken from this._drawArrow())
         let angle = -Math.atan2(this.direction.y, this.direction.x);
         const p = [ // height being divided is the offset
-            this._rotatePoint(this.size.height / 4, 0, angle),
-            this._rotatePoint(-this.size.height / 4, this.size.width / 4, angle),
-            this._rotatePoint(-this.size.height / 4, -(this.size.width / 4), angle)
+            this._rotatePoint(this.height / 4, 0, angle),
+            this._rotatePoint(-this.height / 4, this.width / 4, angle),
+            this._rotatePoint(-this.height / 4, -(this.width / 4), angle)
         ];
         StdEntity.ctx.beginPath();
         StdEntity.ctx.moveTo(p[0][0] + (this.x + (newX * extension)), p[0][1] + (this.y - (newY * extension)));
@@ -295,31 +295,161 @@ export class StdEntity {
         StdEntity.ctx.fillStyle = 'rgb(255, 255, 255)';
         StdEntity.ctx.fill();
     }
+    _drawHitBox() {
+        let points = this.collisionPoints;
+        StdEntity.ctx.moveTo(points[0].x, points[0].y);
+        StdEntity.ctx.lineTo(points[1].x, points[1].y);
+        StdEntity.ctx.lineTo(points[3].x, points[3].y);
+        StdEntity.ctx.lineTo(points[2].x, points[2].y);
+        StdEntity.ctx.closePath();
+
+        StdEntity.ctx.strokeStyle = 'rgb(255, 255, 255)';
+        StdEntity.ctx.stroke();
+    }
     _move() {
         // normalize vector by dividing component by magnitude
-        // todo - prevent snapping when going opposite direction
         if (this.direction.x === 0 && this.direction.y === 0) {
             return;
         } else {
-            this.x += (this.direction.x / this.direction._magnitude()) * this.speed.current;
-            this.y -= (this.direction.y / this.direction._magnitude()) * this.speed.current;
+            this.x += (this.direction.x / this.dirMagnitude) * this.speed.current;
+            this.y -= (this.direction.y / this.dirMagnitude) * this.speed.current;
+        }
+    }
+    _drawSpaceCollisionDetection() {
+        // outer bounds collision
+        // todo - see if it should only check when it's near the edge
+        if (
+            this.x - this._halfWidth < StdEntity.drawSpace.x ||
+            this.x + this._halfWidth > StdEntity.drawSpace.width
+        ) {
+            // move entity back within drawSpace
+            if (this.x - this._halfWidth < StdEntity.drawSpace.x) {
+                this.x = StdEntity.drawSpace.x + this._halfWidth;
+            } else {
+                this.x = StdEntity.drawSpace.width - this._halfWidth;
+            }
+            
+            if (this._rebound.enabled === true) {
+                this.direction.x = -this.direction.x;
+            }
+        }
+        if (
+            this.y - this._halfHeight < StdEntity.drawSpace.y ||
+            this.y + this._halfHeight > StdEntity.drawSpace.height
+        ) {
+            // move entity back within drawSpace
+            if (this.y - this._halfHeight < StdEntity.drawSpace.y) {
+                this.y = StdEntity.drawSpace.y + this._halfHeight;
+            } else {
+                this.y = StdEntity.drawSpace.height - this._halfHeight;
+            }
+
+            if (this._rebound.enabled === true) {
+                this.direction.y = -this.direction.y;
+            }
         }
     }
     _collisionDetection() {
-        // todo - work on collision for other objects
-        if (
-                this.x - (this.size.width / 2) < StdEntity.drawSpace.x ||
-                this.x + (this.size.width / 2) > StdEntity.drawSpace.width
+        // 'sweep and prune' algorithm - broad phase
+        let possibleCollisions = [];
+        for (let i = 0; i < StdEntity.entities.length; i++) {
+            // skip itself
+            if (i === this.id) {
+                continue;
+            }
+
+            // check if any item's min x value is equal or less than the current items max x value
+            // invert min and max to prune further
+            if (
+                (StdEntity._e[i].x - StdEntity._e[i]._halfWidth) <= (this.x + StdEntity._e[i]._halfWidth) &&
+                (StdEntity._e[i].x + StdEntity._e[i]._halfWidth) >= (this.x - StdEntity._e[i]._halfWidth)
             ) {
-            // run onCollision
-            this.collisionConfig.onCollision.x();
+                possibleCollisions.push(i);
+            }
         }
-        if (
-                this.y - (this.size.height / 2) < StdEntity.drawSpace.y ||
-                this.y + (this.size.height / 2) > StdEntity.drawSpace.height
-            ) {
-            // run onCollision
-            this.collisionConfig.onCollision.y();
+
+        // ?? - narrow phase
+        let mainPoints = this.collisionPoints;
+        mainPoints.forEach(point => {
+            possibleCollisions.forEach(entityId => {
+                if (
+                    (
+                        (point.x > StdEntity._e[entityId].x - StdEntity._e[entityId]._halfWidth) &&
+                        (point.x < StdEntity._e[entityId].x + StdEntity._e[entityId]._halfWidth)
+                    ) &&
+                    (
+                        (point.y > StdEntity._e[entityId].y - StdEntity._e[entityId]._halfHeight) &&
+                        (point.y < StdEntity._e[entityId].y + StdEntity._e[entityId]._halfHeight)
+                    )
+                ) {
+                    this._resolveCollision(entityId);
+                }
+            });
+        });
+    }
+    _resolveCollision(entityId) {
+        // todo - look into implementing mass and velocity transfer
+        // distances
+        let disX = StdEntity._e[entityId].x - this.x;
+        let disY = StdEntity._e[entityId].y - this.y;
+
+        // overlap between entities
+        let overlapX = (StdEntity._e[entityId]._halfWidth + this._halfWidth) - Math.abs(disX);
+        let overlapY = (StdEntity._e[entityId]._halfHeight + this._halfHeight) - Math.abs(disY);
+
+        // resolve overlap
+        /* Shift Direction Truth Table (Q - quadrant)
+        Note: angle is using conventional x and y axis while canvas inverts y
+        0 < a < 90      Q1  x-  y+
+        90 < a < 180    Q2  x+  y+
+        180 < a < 270   Q3  x+  y-
+        270 < a < 360   Q4  x-  y-
+        */
+        if (overlapX < (StdEntity._e[entityId]._halfWidth + this._halfWidth) * 0.3) {
+            // get halves and substeps
+            overlapX /= 2 + StdEntity.collisionSubsteps;
+
+            // add margin and shift direction
+            let finalX = (overlapX + 1) * Math.sign(disX);
+
+            // shift entities
+            this.x -= finalX;
+            StdEntity._e[entityId].x += finalX;
+        }
+        if (overlapY < (StdEntity._e[entityId]._halfHeight + this._halfHeight) * 0.3) {
+            // get halves and substeps
+            overlapY /= 2 + StdEntity.collisionSubsteps;
+            
+            // add margin and shift direction
+            let finalY = (overlapY + 1) * Math.sign(disY);
+
+            this.y -= finalY;
+            StdEntity._e[entityId].y += finalY;
+        }
+
+        // invert direction
+        if (this._rebound.enabled === true) {
+            // note: not sure if I like this approach
+            // get times
+            let currentTime = new Date();
+            if (this._rebound.start === undefined) {
+                this._rebound.start = new Date();
+                this._rebound.start.setTime(1); // big number
+            }
+            
+            // check if cooldown is done
+            if (currentTime.getTime() - this._rebound.start.getTime() < this._rebound.duration) {
+                return;
+            }
+
+            // do it
+            if (Math.abs(disX) > Math.abs(disY)) {
+                this.direction.x = -this.direction.x;
+            } else {
+                this.direction.y = -this.direction.y;
+            }
+
+            this._rebound.start = new Date();
         }
     }
     _inputHandler(e, eventType) {
@@ -340,8 +470,11 @@ export class StdEntity {
         // run through actions of every keybind with a flag raised
         Object.keys(this._inputConfig).forEach(key => {
             if (this._inputConfig[key].flag === true) {
-                this._inputConfig[key].action(); // .enabled() (DEPRICATED)
-                anyFlagsTrue = true;
+                this._inputConfig[key].action();
+                
+                if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
+                    anyFlagsTrue = true;
+                }
             }
             
             // DEPRICATED
@@ -352,6 +485,44 @@ export class StdEntity {
         if (anyFlagsTrue === false) {
             this._decelerate();
         }
+    }
+    _draw() {
+        // todo - allow custom draw functions to be loaded
+        switch (this.shape) {
+            case 'rectangle':
+            this._drawRectangle();
+            break;
+        case 'circle':
+            this._drawCircle();
+            break;
+        case 'triangle':
+            this._drawTriangle();
+            break;
+        default:
+            this._drawError();
+            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
+            break;
+        }
+        
+        // debugging
+        if (this.debug === true) {
+            this._drawDebugArrow();
+            this._drawHitBox();
+        }
+    }
+    _update() {
+        this._move();
+        if (this._iFrame.enabled === true) {
+            let currentTime = new Date();
+            if (currentTime.getTime() - this._iFrame.duration.getTime() >= this._iFrame.duration) {
+                this._iFrame.enabled = false;
+                this._collisionDetection();
+            }
+        } else {
+            this._collisionDetection();
+        }
+        this._drawSpaceCollisionDetection();
+        this._inputActionHandler();
     }
     /**
      * Add a keybind to an instance of StdEntity.
@@ -386,49 +557,12 @@ export class StdEntity {
         this.y = y;
     }
     /**
-    * Draw entity to canvas using it's shape.
-    * @returns {void}
-    */
-    draw() {
-        // todo - allow custom draw functions to be loaded
-        switch (this.shape) {
-            case 'rectangle':
-            this._drawRectangle();
-            break;
-        case 'circle':
-            this._drawCircle();
-            break;
-        case 'triangle':
-            this._drawTriangle();
-            break;
-        default:
-            this._drawError();
-            console.log(`ERROR: ${this.shape} does not have a corresponding draw method`);
-            break;
-        }
-        
-        // debugging
-        if (this.debug === true) {
-            this._drawDebugArrow();
-        }
-    }
-    /**
-     * Update position, check collision, and handle any user inputs.
-     * @returns {void}
-     */
-    update() {
-        // this.draw();
-        this._move();
-        this._collisionDetection();
-        this._inputActionHandler();
-    }
-    /**
      * Resize the space where an entity is allowed to be. Affects all instances.
      * @param {number} x
      * @param {number} y
      * @param {number} width
      * @param {number} height
-     * @param {number} margin=0
+     * @param {number} margin default = 0
      * @returns {void}
      */
     static resizeDrawSpace(x, y, width, height, margin = 0) {
@@ -436,5 +570,70 @@ export class StdEntity {
         this.drawSpace.y = y + margin;
         this.drawSpace.width = width - margin;
         this.drawSpace.height = height - margin;
+    }
+    static drawAll() {
+        // note: the sort function could be a preformance issue
+        Object.keys(this.depths).sort().forEach(level => {
+            this.depths[level].forEach(i => {
+                this.entities[i]._draw();
+            });
+        });
+    }
+    static updateAll() {
+        for (let i = 0; i < this.entities.length; i++) {
+            this.entities[i]._update();
+        }
+    }
+    // StdEntities.entities shorthand (get annoying to write)
+    static get _e() {
+        return this.entities;
+    }
+
+    // collision getters
+    /**
+     * Get collision points in a 2D object array
+     * Order: [top left, top right, bottom left, bottom right]
+     * @returns {Array}
+     */
+    get collisionPoints() {
+        // todo - add support for hitboxes other than rectangles
+        return [
+            {x: this.x - this._halfWidth, y: this.y + this._halfHeight},    // top left
+            {x: this.x + this._halfWidth, y: this.y + this._halfHeight},    // top right
+            {x: this.x - this._halfWidth, y: this.y - this._halfHeight},    // bottom left
+            {x: this.x + this._halfWidth, y: this.y - this._halfHeight},    // bottom right
+            {x: this.x, y: this.y - this._halfHeight},                      // top mid
+            {x: this.x, y: this.y + this._halfHeight},                      // bottom mid
+            {x: this.x - this._halfWidth, y: this.y},                       // left mid
+            {x: this.x + this._halfWidth, y: this.y},                       // right mid
+        ];
+    }
+    
+    get invincible() {return this._iFrame.enabled;}
+    set invincible(bool) {
+        if (bool === true) {
+            this._iFrame.enabled = true;
+            this._iFrame.start = new Date();
+        } else {
+            this._iFrame.enabled = false;
+        }
+    }
+
+    get collisionRebound() {return this._rebound.enabled;}
+    set collisionRebound(bool) {this._rebound.enabled = bool;}
+
+    // other getters/setters
+    get dirMagnitude() {return Math.sqrt(this.direction.x**2 + this.direction.y**2);}
+
+    get width() {return this._width;}
+    set width(w) {
+        this._width = w;
+        this._halfWidth = w / 2;
+    }
+
+    get height() {return this._height;}
+    set height(h) {
+        this._height = h;
+        this._halfHeight = h / 2;
     }
 }
