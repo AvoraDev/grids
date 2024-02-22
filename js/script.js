@@ -3,12 +3,12 @@
 // ------------------------------------------------------------------------
 
 // module imports
-import { Hoot }         from "./Hoot.js";
-import { Griddy }       from "./Griddy.js";
-import { LPSH }         from "./LPSH.js";
-import { StdEntity }    from "./StdEntity.js";
-import { NPC }          from "./NPC.js";
-import { addShooting }  from "./Shoot.js";
+import { Hoot }         from "./canvas/Hoot.js";
+import { Griddy }       from "./canvas/Griddy.js";
+import { LPSH }         from "./util/LPSH.js";
+import { StdEntity }    from "./entity/StdEntity.js";
+import { NPC }          from "./entity/NPC.js";
+import { addShooting }  from "./entity/Shoot.js";
 
 // from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system
 switch(window.location.protocol) {
