@@ -18,7 +18,7 @@ export class LPSH {
      * Record a sample of time since the last log in milliseconds.
      * @returns {void}
      */
-    log() {
+    Log() {
         this.logEnd = new Date();
         this.samples.push(1000 / (this.logEnd.getTime() - this.logStart.getTime()));
         if (this.samples.length >= this.sampleSize) {this.samples.shift();}
@@ -28,7 +28,7 @@ export class LPSH {
      * Get average time between logs in milliseconds.
      * @returns {void}
      */
-    getLPS() {
+    GetLPS() {
         let output = 0;
         this.samples.forEach(sample => {
             output += sample;
@@ -40,7 +40,7 @@ export class LPSH {
      * Delete all recorded samples.
      * @returns {void}
      */
-    clearSamples() {
+    ClearSamples() {
         this.samples = [];
     }
 }

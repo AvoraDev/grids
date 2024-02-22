@@ -27,16 +27,16 @@ switch(window.location.protocol) {
 const debug_text = document.querySelector("#debug-text");
 
 // canvas setup
-const disp = new Hoot(document.querySelector("#disp"), "rgb(0, 0, 0)");
+const disp = new Hoot("#disp", "rgb(0, 0, 0)");
 
 // grid setup
 Griddy.canvas = disp;
 Griddy.ctx = disp.ctx;
 Griddy.border.margin = 5;
 Griddy.border.color = "rgb(200, 215, 210)";
-Griddy.updateCells();
+Griddy.UpdateCells();
 window.addEventListener("resize", () => {
-    Griddy.updateCells();
+    Griddy.UpdateCells();
 });
 
 // FPSH and TPSH setup
@@ -45,9 +45,9 @@ const TPSH = new LPSH("#tps-input", "#tps-confirm");
 
 // StdEntity setup
 StdEntity.ctx = disp.ctx;
-StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
+StdEntity.ResizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
 window.addEventListener("resize", () => {
-    StdEntity.resizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
+    StdEntity.ResizeDrawSpace(0, 0, disp.width, disp.height, Griddy.border.margin);
 });
 
 // test entity setup
@@ -74,7 +74,7 @@ const test = new StdEntity(
         }
     }
 );
-test.initEventListeners();
+test.InitEventListeners();
 
 // shooting WIP
 addShooting(test, 'rgb(0, 255, 255)');
@@ -126,8 +126,8 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             angle = (angle < 0) ? 360 + angle : angle;
 
             debug_text.innerHTML = `
-            FPS: ${FPSH.getLPS().toFixed(2)}<br>
-            TPS: ${TPSH.getLPS().toFixed(2)}<br>
+            FPS: ${FPSH.GetLPS().toFixed(2)}<br>
+            TPS: ${TPSH.GetLPS().toFixed(2)}<br>
             x: ${test.x.toFixed(2)}<br>
             y: ${test.y.toFixed(2)}<br>
             dX: ${test.direction.x.toFixed(2)}<br>
@@ -160,7 +160,7 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
 function debugCells(flag = false) {
     // highlight cell
     if (flag === true) {
-        let gridId = Griddy.withinCell(test.x, test.y);
+        let gridId = Griddy.WithinCell(test.x, test.y);
         Griddy.debug = true;
         try {
             disp.ctx.fillStyle = "rgb(150, 100, 255)"
@@ -194,19 +194,20 @@ function _initDraw(fps) {
     // note: order matters here
     anim = setInterval(() => {
         // clean screen
-        disp.clear();
+        disp.Clear();
         
         // debug
         debugCells(cellsDebugFlag);
 
         // draw grid
-        Griddy.draw();
-        Griddy.fillMargin();
+        Griddy.Draw();
+        Griddy.FillMargin();
 
         // draw test entities
-        StdEntity.drawAll();
+        StdEntity.DrawAll();
 
-        FPSH.log();
+        // debugging
+        FPSH.Log();
     }, 1000 / fps);
 
     // log init
@@ -219,11 +220,11 @@ function _initCalc(tps) { // ticks per second
     // start new one with given tps
     calc = setInterval(() => {
         // update stuff
-        StdEntity.updateAll();
+        StdEntity.UpdateAll();
 
         // debugging
         debugTxt(txtDebugFlag, "rgb(0, 255, 255)", "rgb(255, 150, 100)")
-        TPSH.log();
+        TPSH.Log();
     }, 1000 / tps);
 
     // log init
@@ -251,19 +252,19 @@ function init(fps = 60, tps = 60) {
 
 FPSH.confirm.onclick = () => {
     _initDraw(FPSH.input.value);
-    FPSH.clearSamples();
+    FPSH.ClearSamples();
 };
 TPSH.confirm.onclick = () => {
     _initCalc(TPSH.input.value);
-    TPSH.clearSamples();
+    TPSH.ClearSamples();
 };
 document.querySelector("#grid-rows-confirm").onclick = () => {
     Griddy.rows = document.querySelector("#grid-rows-input").value;
-    Griddy.updateCells();
+    Griddy.UpdateCells();
 };
 document.querySelector("#grid-columns-confirm").onclick = () => {
     Griddy.columns = document.querySelector("#grid-columns-input").value;
-    Griddy.updateCells()
+    Griddy.UpdateCells()
 };
 
 // ------------------------------------------------------------------------

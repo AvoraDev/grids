@@ -537,7 +537,7 @@ export class StdEntity {
      * @param {function} action
      * @returns {void}
      */
-    addKeybind(name, keybind, action) {
+    AddKeybind(name, keybind, action) {
         this._inputConfig[name] = {
             action: action,
             keybind: keybind,
@@ -548,7 +548,7 @@ export class StdEntity {
      * Add event listeners to handle key inputs.
      * @returns {void}
      */
-    initEventListeners() {
+    InitEventListeners() {
         window.addEventListener('keydown', e => {this._inputHandler(e, 'keydown');});
         window.addEventListener('keyup', e => {this._inputHandler(e, 'keyup');});
         window.addEventListener('click', e => {this._inputHandler(e, 'click');})
@@ -559,7 +559,7 @@ export class StdEntity {
      * @param {number} y
      * @returns {void}
      */
-    tp(x, y) {
+    Tp(x, y) {
         this.x = x;
         this.y = y;
     }
@@ -572,13 +572,13 @@ export class StdEntity {
      * @param {number} margin default = 0
      * @returns {void}
      */
-    static resizeDrawSpace(x, y, width, height, margin = 0) {
+    static ResizeDrawSpace(x, y, width, height, margin = 0) {
         this.drawSpace.x = x + margin;
         this.drawSpace.y = y + margin;
         this.drawSpace.width = width - margin;
         this.drawSpace.height = height - margin;
     }
-    static drawAll() {
+    static DrawAll() {
         // note: the sort function could be a preformance issue
         Object.keys(this.depths).sort().forEach(level => {
             this.depths[level].forEach(i => {
@@ -586,7 +586,7 @@ export class StdEntity {
             });
         });
     }
-    static updateAll() {
+    static UpdateAll() {
         for (let i = 0; i < this.entities.length; i++) {
             this.entities[i]._update();
         }

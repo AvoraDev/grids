@@ -14,7 +14,7 @@ export const Griddy = {
      * Find position and size of all cells.
      * @returns {void}
      */
-    updateCells() {
+    UpdateCells() {
         // clear all cells
         this.cells = [];
 
@@ -39,7 +39,7 @@ export const Griddy = {
      * Draw all cells to canvas.
      * @returns {void}
      */
-    draw() {
+    Draw() {
         // keep track of old line width to revert back to it later
         let oldLineWidth = this.ctx.lineWidth;
 
@@ -82,7 +82,7 @@ export const Griddy = {
      * @param {boolean} fullReturn - If set to true, will return an array with the id, column, and row.
      * @returns {number}
      */
-    withinCell(x, y, fullReturn = false) {
+    WithinCell(x, y, fullReturn = false) {
         let col = Math.floor(x / (this.cells[0][2] + this.border.margin));
         let row = Math.floor(y / (this.cells[0][3] + this.border.margin));
 
@@ -95,7 +95,7 @@ export const Griddy = {
             return [col + (row * this.columns), col, row];
         }
     },
-    fillMargin(color = this.border.color) {
+    FillMargin(color = this.border.color) {
         this.ctx.fillStyle = color;
         this.ctx.fillRect(
             0,

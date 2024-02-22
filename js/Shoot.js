@@ -14,7 +14,7 @@ export function addShooting(entity, bulletColor, keybind = 'Space') {
         cooldown: 100 // ms
     };
 
-    entity.addKeybind('shoot', keybind, () => {
+    entity.AddKeybind('shoot', keybind, () => {
         let currentTime = new Date();
         if (entity._shooting.start === undefined) {
             entity._shooting.start = new Date();
