@@ -37,7 +37,7 @@ export class StdEntity {
      * @param {object} mvInfo
      * @returns {onject}
      */
-	constructor(x, y, mass, appearance, mvInfo) {
+	constructor(x, y, mass, appearance, mvInfo, initInputListeners = true) {
         this.x = x;
         this.y = y;
         this.mass = mass; // todo - implement
@@ -106,11 +106,18 @@ export class StdEntity {
             start: undefined,
             duration: 1 // ms
         };
+
+        // secondary graphics
         // todo - implement zDepth into secondary graphics (don't wanna :( )
         this.secondaryGraphics = [];
         this.debug = false;
 
-        // add to class's arrs
+        // event listeners setup
+        if (initInputListeners === true) {
+            this.InitEventListeners();
+        }
+
+        // class arrays
         StdEntity.entities.push(this);
         this.id = StdEntity.entities.length - 1;
 

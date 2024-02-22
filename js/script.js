@@ -74,7 +74,6 @@ const test = new StdEntity(
         }
     }
 );
-test.InitEventListeners();
 
 // shooting WIP
 addShooting(test, 'rgb(0, 255, 255)');
