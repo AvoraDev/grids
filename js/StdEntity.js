@@ -74,16 +74,6 @@ export class StdEntity {
                 mvInfo.speed.acceleration * 0.25:
                 mvInfo.speed.decelearation
         };
-        this._iFrame = {
-            enabled: false,
-            start: undefined,
-            duration: 1000 / 8 // ms
-        };
-        this._rebound = {
-            enabled: false,
-            start: undefined,
-            duration: 1 // ms
-        }
         this._inputConfig = {
             up: {
                 action: () => {this._defaultMovement('y', 1, ['left', 'right'])},
@@ -106,6 +96,18 @@ export class StdEntity {
                 flag: false
             }
         };
+        this._iFrame = {
+            enabled: false,
+            start: undefined,
+            duration: 250 // ms
+        };
+        this._rebound = {
+            enabled: false,
+            start: undefined,
+            duration: 1 // ms
+        };
+        // todo - implement zDepth into secondary graphics (don't wanna :( )
+        this.secondaryGraphics = [];
         this.debug = false;
 
         // add to class's arrs
@@ -113,14 +115,14 @@ export class StdEntity {
         this.id = StdEntity.entities.length - 1;
 
         // zDepth pain
-        let dId = (this.zDepth < 0) ?
+        let depthId = (this.zDepth < 0) ?
             `n${this.zDepth}` :
             `p${this.zDepth}`;
 
-        if (typeof(StdEntity.depths[dId]) === 'undefined') {
-            StdEntity.depths[dId] = [];
+        if (typeof(StdEntity.depths[depthId]) === 'undefined') {
+            StdEntity.depths[depthId] = [];
         }
-        StdEntity.depths[dId].push(this.id);
+        StdEntity.depths[depthId].push(this.id);
     }
     _accelerate() {
         if (this.speed.current + this.speed.acceleration > this.speed.max) {
@@ -322,7 +324,6 @@ export class StdEntity {
             this.x - this._halfWidth < StdEntity.drawSpace.x ||
             this.x + this._halfWidth > StdEntity.drawSpace.width
         ) {
-            // move entity back within drawSpace
             if (this.x - this._halfWidth < StdEntity.drawSpace.x) {
                 this.x = StdEntity.drawSpace.x + this._halfWidth;
             } else {
@@ -337,7 +338,6 @@ export class StdEntity {
             this.y - this._halfHeight < StdEntity.drawSpace.y ||
             this.y + this._halfHeight > StdEntity.drawSpace.height
         ) {
-            // move entity back within drawSpace
             if (this.y - this._halfHeight < StdEntity.drawSpace.y) {
                 this.y = StdEntity.drawSpace.y + this._halfHeight;
             } else {
@@ -454,12 +454,14 @@ export class StdEntity {
     }
     _inputHandler(e, eventType) {
         Object.keys(this._inputConfig).forEach(key => {
-            if (this._inputConfig[key].keybind === e.code) {
-                this._inputConfig[key].flag = (eventType === 'keydown') ? true : false;
+            if (this._inputConfig[key].keybind !== e.code) {
+                return;
+            }
 
-                // DEPRICATED
-                // this._inputConfig[key].flag.keydown = (eventType === 'keydown') ? true : false; (old ver)
-                // this._inputConfig[key].flag.keyup = (eventType === 'keyup') ? true : false;
+            if (eventType === 'keydown' || eventType === 'click') {
+                this._inputConfig[key].flag = true;
+            } else {
+                this._inputConfig[key].flag = false;
             }
         });
     }
@@ -469,19 +471,17 @@ export class StdEntity {
 
         // run through actions of every keybind with a flag raised
         Object.keys(this._inputConfig).forEach(key => {
-            if (this._inputConfig[key].flag === true) {
-                this._inputConfig[key].action();
-                
-                if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
-                    anyFlagsTrue = true;
-                }
+            if (this._inputConfig[key].flag === false) {
+                return;
             }
+
+            this._inputConfig[key].action();
             
-            // DEPRICATED
-            // else if (this._inputConfig[key].flag.keyup === true) {
-            //     this._inputConfig[key].action.disabled();
-            // }
+            if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
+                anyFlagsTrue = true;
+            }
         });
+
         if (anyFlagsTrue === false) {
             this._decelerate();
         }
@@ -508,6 +508,12 @@ export class StdEntity {
         if (this.debug === true) {
             this._drawDebugArrow();
             this._drawHitBox();
+        }
+
+        if (this.secondaryGraphics.length > 0) {
+            for (let i = 0; i < this.secondaryGraphics.length; i++) {
+                this.secondaryGraphics[i]();
+            }
         }
     }
     _update() {
@@ -543,8 +549,9 @@ export class StdEntity {
      * @returns {void}
      */
     initEventListeners() {
-        window.addEventListener('keydown', (e) => {this._inputHandler(e, 'keydown')});
-        window.addEventListener('keyup', (e) => {this._inputHandler(e, 'keyup')});
+        window.addEventListener('keydown', e => {this._inputHandler(e, 'keydown');});
+        window.addEventListener('keyup', e => {this._inputHandler(e, 'keyup');});
+        window.addEventListener('click', e => {this._inputHandler(e, 'click');})
     }
     /**
      * 'Teleport' entity to specified coordinates.

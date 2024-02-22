@@ -3,11 +3,12 @@
 // ------------------------------------------------------------------------
 
 // module imports
-import { Hoot } from "./Hoot.js";
-import { Griddy } from "./Griddy.js";
-import { StdEntity } from "./StdEntity.js";
-import { NPC } from "./NPC.js";
-import { LPSH } from "./LPSH.js";
+import { Hoot }         from "./Hoot.js";
+import { Griddy }       from "./Griddy.js";
+import { LPSH }         from "./LPSH.js";
+import { StdEntity }    from "./StdEntity.js";
+import { NPC }          from "./NPC.js";
+import { addShooting }  from "./Shoot.js";
 
 // from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system
 switch(window.location.protocol) {
@@ -57,7 +58,7 @@ const test = new StdEntity(
     allMass,
     {
         color: "rgb(255, 0, 0)",
-        shape: "rectangle",
+        shape: "triangle",
         width: 20,
         zDepth: 1
     },
@@ -73,8 +74,21 @@ const test = new StdEntity(
         }
     }
 );
-// test.speed.turning = 1;
 test.initEventListeners();
+
+// shooting WIP
+addShooting(test, 'rgb(0, 255, 255)');
+test.secondaryGraphics.push(() => {
+    let oldWidth = StdEntity.ctx.lineWidth;
+
+    StdEntity.ctx.beginPath();
+    StdEntity.ctx.arc(test.x, test.y, test.width * 1.5, 0, Math.PI * 2);
+    StdEntity.ctx.strokeStyle = 'rgb(255, 255, 255)';
+    StdEntity.ctx.lineWidth = 4;
+    StdEntity.ctx.stroke();
+
+    StdEntity.ctx.lineWidth = oldWidth;
+})
 
 // test NPC setup
 const colTest = new NPC(
@@ -90,44 +104,12 @@ const colTest = new NPC(
     {
         direction: -45,
         speed: {
-            min: 0,
+            min: 5,
             max: 5
         }
     }
 )
 colTest.collisionRebound = true;
-
-// bullets WIP
-test.NPCs = [];
-test.shootCooldown = new Date();
-test.addKeybind("shoot", "Space", () => {
-    let currentTime = new Date();
-    if (currentTime.getTime() - test.shootCooldown.getTime() > 100) {
-        test.NPCs.push(new NPC(
-            test.x + (test.direction.x * test.width),
-            test.y - (test.direction.y * test.height),
-            allMass,
-            {
-                color: "rgb(0, 255, 255)",
-                shape: "triangle",
-                width: test.width * 0.75
-            },
-            {
-                direction: {
-                    x: test.direction.x,
-                    y: test.direction.y
-                },
-                speed: {
-                    min: test.speed.max * 1.25,
-                    max: test.speed.max * 1.25
-                }
-            }
-        ))
-        test.NPCs[test.NPCs.length - 1].collisionRebound = true;
-        // test.NPCs[test.NPCs.length - 1].invincibility = true;
-        test.shootCooldown = new Date();
-    }
-});
 
 // ------------------------------------------------------------------------
 // DEBUG
@@ -162,7 +144,7 @@ function debugTxt(flag = false, tru = "rgb(0, 255, 0)", fal = "rgb(255, 0, 0)") 
             - iF: <span style="color:${test.invincibility ? tru : fal}">${test.invincibility}</span><br>
             - shoot: <span style="color:${test._inputConfig.shoot.flag ? tru : fal}">${test._inputConfig.shoot.flag}</span><br>
             <br>
-            NPCs: ${test.NPCs.length}<br>
+            NPCs: ${test._shooting.bullets.length}<br>
             Cells: ${Griddy.cells.length}
             `;
         }
@@ -267,8 +249,14 @@ function init(fps = 60, tps = 60) {
 // FPS/TPS CONTROL
 // ------------------------------------------------------------------------
 
-FPSH.confirm.onclick = () => {FPSH.clearSamples(); _initDraw(FPSH.input.value);};
-TPSH.confirm.onclick = () => {TPSH.clearSamples(); _initCalc(TPSH.input.value);};
+FPSH.confirm.onclick = () => {
+    _initDraw(FPSH.input.value);
+    FPSH.clearSamples();
+};
+TPSH.confirm.onclick = () => {
+    _initCalc(TPSH.input.value);
+    TPSH.clearSamples();
+};
 document.querySelector("#grid-rows-confirm").onclick = () => {
     Griddy.rows = document.querySelector("#grid-rows-input").value;
     Griddy.updateCells();
