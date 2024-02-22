@@ -1,5 +1,5 @@
-import { NPC } from "./NPC.js";
-import { StdEntity } from "./StdEntity.js";
+import { NPC } from "../NPC.js";
+import { StdEntity } from "../StdEntity.js";
 
 /**
  * Add shooting capabilities to a StdEntity object 

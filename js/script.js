@@ -8,14 +8,14 @@ import { Griddy }       from "./canvas/Griddy.js";
 import { LPSH }         from "./util/LPSH.js";
 import { StdEntity }    from "./entity/StdEntity.js";
 import { NPC }          from "./entity/NPC.js";
-import { addShooting }  from "./entity/Shoot.js";
+import { addShooting }  from "./entity/optional/Shoot.js";
 
 // from https://stackoverflow.com/questions/41227019/how-to-detect-if-a-web-page-is-running-from-a-website-or-local-file-system
 switch(window.location.protocol) {
-    case 'http:': // never thought about doing this, its cool
     case 'https:':
         document.title += ": remote";
         break;
+    case 'http:': // never thought about doing this, its cool
     case 'file:':
         document.title += ": local";
         break;

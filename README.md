@@ -1,4 +1,4 @@
-# grids
+# Grids
 
 My attempt to make a game (engine?) from scratch using HTML, CSS, and JS.
 
